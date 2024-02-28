@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -47,22 +48,71 @@ public class Piece
     public List<int> GetNeightbour(int CurrentPos)
     {
         List<int> results = new List<int>();
-        if (_playerOwnership == PlayerOwnership.TOP)
+        //Save these so we don't have to do the same check multiple time
+        bool canMoveForward = false;
+        bool canMoveBackward = false;
+        bool canMoveRight = false;
+        bool canMoveLeft = false;
+        if (_pieceType.movementType.HasFlag(MovementType.FORWARD))
         {
-            if (_pieceType.movementType.HasFlag(MovementType.FORWARD))
+            if ((_playerOwnership == PlayerOwnership.TOP ? CurrentPos - 3 >= 0 : CurrentPos + 3 <= 11))
             {
-                if (CurrentPos - 3 >= 0)
-                {
-
-                }
-            }
-            if (CurrentPos >= 9)
-            {
-
+                canMoveForward = true;
+                results.Add(_playerOwnership == PlayerOwnership.TOP ? CurrentPos - 3 : CurrentPos + 3);
             }
         }
-        //Check is first or last row
-
+        if (_pieceType.movementType.HasFlag(MovementType.BACKWARD))
+        {
+            if ((_playerOwnership == PlayerOwnership.TOP ? CurrentPos + 3 <= 11 : CurrentPos - 3 >= 0))
+            {
+                canMoveBackward = true;
+                results.Add(_playerOwnership == PlayerOwnership.TOP ? CurrentPos + 3 : CurrentPos - 3);
+            }
+        }
+        if (_pieceType.movementType.HasFlag(MovementType.RIGHT))
+        {
+            if ((_playerOwnership == PlayerOwnership.TOP ? CurrentPos % 3 != 0 : CurrentPos % 3 != 2))
+            {
+                canMoveRight = true;
+                results.Add(_playerOwnership == PlayerOwnership.TOP ? CurrentPos - 1 : CurrentPos + 1);
+            }
+        }
+        if (_pieceType.movementType.HasFlag(MovementType.LEFT))
+        {
+            if ((_playerOwnership == PlayerOwnership.TOP ? CurrentPos % 3 != 2 : CurrentPos % 3 != 0))
+            {
+                canMoveLeft = true;
+                results.Add(_playerOwnership == PlayerOwnership.TOP ? CurrentPos + 1 : CurrentPos + 1);
+            }
+        }
+        if (_pieceType.movementType.HasFlag(MovementType.FORWARD_RIGHT))
+        {
+            if (canMoveForward && canMoveRight)
+            {
+                results.Add(_playerOwnership == PlayerOwnership.TOP ? CurrentPos - 4 : CurrentPos + 4);
+            }
+        }
+        if (_pieceType.movementType.HasFlag(MovementType.FORWARD_LEFT))
+        {
+            if (canMoveForward && canMoveLeft)
+            {
+                results.Add(_playerOwnership == PlayerOwnership.TOP ? CurrentPos - 2 : CurrentPos + 2);
+            }
+        }
+        if (_pieceType.movementType.HasFlag(MovementType.BACKWARD_RIGHT))
+        {
+            if (canMoveBackward && canMoveRight)
+            {
+                results.Add(_playerOwnership == PlayerOwnership.TOP ? CurrentPos + 4 : CurrentPos - 4);
+            }
+        }
+        if (_pieceType.movementType.HasFlag(MovementType.BACKWARD_LEFT))
+        {
+            if (canMoveBackward && canMoveLeft)
+            {
+                results.Add(_playerOwnership == PlayerOwnership.TOP ? CurrentPos + 2 : CurrentPos - 2);
+            }
+        }
         return results;
     }
 }
