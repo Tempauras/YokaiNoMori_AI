@@ -55,8 +55,20 @@ public class GameManager : Singleton<GameManager>
         _onGameBoardPieces.Add(_gameBoard[11]);
     }
 
-    private void MovePieces(Piece pieceMoving, int PositionToMoveTo)
+    public bool MovePieces(Piece pieceMoving, int PositionToMoveTo)
     {
+        int indexOfMovingPiece = Array.IndexOf(_gameBoard, pieceMoving);
+        if (indexOfMovingPiece == -1)
+        {
+            Debug.Log("[GameManager - MovePieces] Pieces not in gameboard, wtf happened");
+            return false;
+        }
+
+        if (pieceMoving.GetNeighbour(indexOfMovingPiece).Count <= 0)
+        {
+            Debug.Log("[GameManager - MovePieces] No valid movement, wtf happened");
+            return false;
+        }
         if (_gameBoard[PositionToMoveTo].GetPieceSO())
         {
             if (pieceMoving.GetPlayerOwnership() == PlayerOwnership.TOP)
@@ -67,13 +79,66 @@ public class GameManager : Singleton<GameManager>
             {
                 _handPiecesBottomPlayer.Add(_gameBoard[PositionToMoveTo]);
             }
-            int indexOfMovingPiece = Array.IndexOf(_gameBoard, pieceMoving);
-            if (indexOfMovingPiece != -1) 
-            {
-                _gameBoard[indexOfMovingPiece] = new Piece();
-            }
+            _gameBoard[indexOfMovingPiece] = null;
             _gameBoard[PositionToMoveTo] = pieceMoving;
-
         }
+        else
+        {
+            _gameBoard[indexOfMovingPiece] = null;
+            _gameBoard[PositionToMoveTo] = pieceMoving;
+        }
+        return true;
+    }
+
+    public bool ParachutePiece(Piece pieceParachuting, int PositionToParachuteTo)
+    {
+        //Check if the piece exists in its owner hand
+        if (pieceParachuting.GetPlayerOwnership() == PlayerOwnership.TOP ? _handPiecesTopPlayer.Exists(x => x == pieceParachuting) : _handPiecesBottomPlayer.Exists(x => x == pieceParachuting))
+        {
+            //Check if the position is empty
+            if (!_gameBoard[PositionToParachuteTo].GetPieceSO())
+            {
+                _gameBoard[PositionToParachuteTo] = pieceParachuting;
+                if (pieceParachuting.GetPlayerOwnership() == PlayerOwnership.TOP)
+                {
+                    _handPiecesTopPlayer.Remove(pieceParachuting);
+                }
+                else
+                {
+                    _handPiecesBottomPlayer.Remove(pieceParachuting);
+                }
+                return true;
+            }
+            else
+            {
+                Debug.Log("[GameManager - ParachutePiece] Position is not empty.");
+            }
+        } 
+        else 
+        {
+            Debug.Log("[GameManager - ParachutePiece] Piece does not exist in its owner hand, wtf happened");
+        }
+        return false;
+    }
+
+    public List<int> AllowedMove(Piece piece)
+    {
+        int indexOfMovingPiece = Array.IndexOf(_gameBoard, piece);
+        if (indexOfMovingPiece == -1)
+        {
+            Debug.Log("[GameManager - MovePieces] Pieces not in gameboard, wtf happened");
+            return new List<int>();
+        }
+        List<int> availableSpace = new List<int>();
+        List<int> NeighbourSpaces = piece.GetNeighbour(indexOfMovingPiece);
+        foreach (int NeighbourSpace in NeighbourSpaces)
+        {
+            if (!_gameBoard[NeighbourSpace].GetPieceSO() || _gameBoard[NeighbourSpace].GetPlayerOwnership() != piece.GetPlayerOwnership())
+            {
+                availableSpace.Add(NeighbourSpace);
+            }
+        }
+
+        return availableSpace;
     }
 }

@@ -1,8 +1,4 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
-using UnityEngine;
-using UnityEngine.UIElements;
 
 public enum PlayerOwnership
 {
@@ -45,7 +41,7 @@ public class Piece
         _playerOwnership = newPlayerOwnership;
     }
 
-    public List<int> GetNeightbour(int CurrentPos)
+    public List<int> GetNeighbour(int CurrentPos)
     {
         List<int> results = new List<int>();
         //Save these so we don't have to do the same check multiple time
@@ -55,7 +51,7 @@ public class Piece
         bool canMoveLeft = false;
         if (_pieceType.movementType.HasFlag(MovementType.FORWARD))
         {
-            if ((_playerOwnership == PlayerOwnership.TOP ? CurrentPos - 3 >= 0 : CurrentPos + 3 <= 11))
+            if (_playerOwnership == PlayerOwnership.TOP ? CurrentPos - 3 >= 0 : CurrentPos + 3 <= 11)
             {
                 canMoveForward = true;
                 results.Add(_playerOwnership == PlayerOwnership.TOP ? CurrentPos - 3 : CurrentPos + 3);
@@ -63,7 +59,7 @@ public class Piece
         }
         if (_pieceType.movementType.HasFlag(MovementType.BACKWARD))
         {
-            if ((_playerOwnership == PlayerOwnership.TOP ? CurrentPos + 3 <= 11 : CurrentPos - 3 >= 0))
+            if (_playerOwnership == PlayerOwnership.TOP ? CurrentPos + 3 <= 11 : CurrentPos - 3 >= 0)
             {
                 canMoveBackward = true;
                 results.Add(_playerOwnership == PlayerOwnership.TOP ? CurrentPos + 3 : CurrentPos - 3);
@@ -71,7 +67,7 @@ public class Piece
         }
         if (_pieceType.movementType.HasFlag(MovementType.RIGHT))
         {
-            if ((_playerOwnership == PlayerOwnership.TOP ? CurrentPos % 3 != 0 : CurrentPos % 3 != 2))
+            if (_playerOwnership == PlayerOwnership.TOP ? CurrentPos % 3 != 0 : CurrentPos % 3 != 2)
             {
                 canMoveRight = true;
                 results.Add(_playerOwnership == PlayerOwnership.TOP ? CurrentPos - 1 : CurrentPos + 1);
@@ -79,7 +75,7 @@ public class Piece
         }
         if (_pieceType.movementType.HasFlag(MovementType.LEFT))
         {
-            if ((_playerOwnership == PlayerOwnership.TOP ? CurrentPos % 3 != 2 : CurrentPos % 3 != 0))
+            if (_playerOwnership == PlayerOwnership.TOP ? CurrentPos % 3 != 2 : CurrentPos % 3 != 0)
             {
                 canMoveLeft = true;
                 results.Add(_playerOwnership == PlayerOwnership.TOP ? CurrentPos + 1 : CurrentPos + 1);
