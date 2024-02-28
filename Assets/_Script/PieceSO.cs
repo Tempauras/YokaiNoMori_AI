@@ -25,7 +25,7 @@ public enum PieceType
 }
 
 [CreateAssetMenu(fileName = "Pieces", menuName = "ScriptableObjects/Pieces")]
-public class PiecesSO : ScriptableObject
+public class PieceSO : ScriptableObject
 {
     public MovementType movementType;
     public PieceType pieceType;
