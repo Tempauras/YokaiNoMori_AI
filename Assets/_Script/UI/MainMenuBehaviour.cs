@@ -7,6 +7,12 @@ public class MainMenuBehaviour : MonoBehaviour
 {
 	[SerializeField] private BoardView m_Game;
 
+	public void ShowMainMenu()
+	{
+		m_Game.Clear();
+		gameObject.SetActive(true);
+	}
+
 	public void StartPlayerVsMachine()
 	{
 		m_Game.PlaySingle();

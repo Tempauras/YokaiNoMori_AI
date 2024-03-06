@@ -17,6 +17,6 @@ public class EndMenuBehaviour : MonoBehaviour
 	public void GoToMainMenu()
 	{
 		gameObject.SetActive(false);
-		m_MainMenu.gameObject.SetActive(true);
+		m_MainMenu.ShowMainMenu();
 	}
 }
