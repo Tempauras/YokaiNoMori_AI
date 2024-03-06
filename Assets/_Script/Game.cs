@@ -140,6 +140,24 @@ public class Game : MonoBehaviour
 
 	public bool MovePieces(Piece pieceMoving, int PositionToMoveTo)
 	{
+		PlayerOwnership ownerOfPiece = pieceMoving.GetPlayerOwnership();
+		if (pieceMoving.GetPieceSO().pieceType == PieceType.KOROPOKKURU &&
+            ((pieceMoving.GetPlayerOwnership() == PlayerOwnership.TOP) ? (PositionToMoveTo <= 2) : (PositionToMoveTo >= 9)))
+		{
+			List<int> allowedEnemyMove = new List<int>();
+			foreach (Piece piece in _gameBoard)
+			{
+				if (piece.GetPlayerOwnership() != ownerOfPiece)
+				{
+					allowedEnemyMove.AddRange(AllowedMove(piece));
+				}
+			}
+			if (!allowedEnemyMove.Contains(PositionToMoveTo))
+			{
+				OnEnd.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
+            }
+			
+		}
 		int indexOfMovingPiece = Array.IndexOf(_gameBoard, pieceMoving);
 		if(indexOfMovingPiece == -1)
 			return ParachutePiece(pieceMoving, PositionToMoveTo);
@@ -152,15 +170,22 @@ public class Game : MonoBehaviour
 
 		if(_gameBoard[PositionToMoveTo] != null && _gameBoard[PositionToMoveTo].GetPieceSO() != null)
 		{
-			if(pieceMoving.GetPlayerOwnership() == PlayerOwnership.TOP)
+			if (_gameBoard[PositionToMoveTo].GetPieceSO().pieceType == PieceType.KOROPOKKURU)
 			{
-				_handPiecesTopPlayer.Add(_gameBoard[PositionToMoveTo]);
+				OnEnd.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
 			}
 			else
 			{
-				_handPiecesBottomPlayer.Add(_gameBoard[PositionToMoveTo]);
+				if (ownerOfPiece == PlayerOwnership.TOP)
+				{
+                    _handPiecesTopPlayer.Add(_gameBoard[PositionToMoveTo]);
+				}
+				else
+				{
+                    _handPiecesBottomPlayer.Add(_gameBoard[PositionToMoveTo]);
+                }
 			}
-			_gameBoard[PositionToMoveTo].SetPlayerOwnership(pieceMoving.GetPlayerOwnership());
+			_gameBoard[PositionToMoveTo].SetPlayerOwnership(ownerOfPiece);
 			if(_gameBoard[PositionToMoveTo].GetPieceSO().pieceType == PieceType.KODAMA_SAMURAI)
 				_gameBoard[PositionToMoveTo].SetPieceSO(KodamaPiece);
 		}
@@ -169,7 +194,7 @@ public class Game : MonoBehaviour
 		_gameBoard[PositionToMoveTo] = pieceMoving;
 
 		if(pieceMoving.GetPieceSO().pieceType == PieceType.KODAMA &&
-			((pieceMoving.GetPlayerOwnership() == PlayerOwnership.TOP) ? (PositionToMoveTo <= 2) : (PositionToMoveTo >= 9)))
+			((ownerOfPiece == PlayerOwnership.TOP) ? (PositionToMoveTo <= 2) : (PositionToMoveTo >= 9)))
 		{
 			pieceMoving.SetPieceSO(KodamaSamuraiPiece);
 		}
