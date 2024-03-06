@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   movementType: 63
   pieceType: 4
+  shorthandNotation: s

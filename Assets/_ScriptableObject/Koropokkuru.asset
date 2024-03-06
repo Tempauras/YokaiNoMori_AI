@@ -14,3 +14,4 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   movementType: -1
   pieceType: 0
+  shorthandNotation: k

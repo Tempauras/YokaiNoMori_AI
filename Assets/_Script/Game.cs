@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 
 public class Game : MonoBehaviour
@@ -11,11 +12,12 @@ public class Game : MonoBehaviour
 	public PieceSO KodamaSamuraiPiece;
 	public PieceSO TanukiPiece;
 
+	public String GameStartingString;
+
 	private Piece[] _gameBoard = new Piece[12];
 	private List<Piece> _onGameBoardPieces = new List<Piece>();
 	private List<Piece> _handPiecesTopPlayer = new List<Piece>();
 	private List<Piece> _handPiecesBottomPlayer = new List<Piece>();
-	// Start is called before the first frame update
 
 	public event Action OnInit;
 	public event Action OnMovement;
@@ -24,6 +26,19 @@ public class Game : MonoBehaviour
 	void Start()
 	{
 		DispatchPieces();
+	}
+
+	public void DecodeString(string StringToDecode)
+	{
+		foreach (char c in StringToDecode)
+		{
+			switch (c)
+			{
+				case 'B':
+				default:
+					break;
+			}
+		}
 	}
 
 	public void DispatchPieces()
@@ -91,13 +106,17 @@ public class Game : MonoBehaviour
 			_gameBoard[PositionToMoveTo] = pieceMoving;
 		}
 		OnMovement.Invoke();
-		return true;
+        if ((pieceMoving.GetPlayerOwnership() == PlayerOwnership.TOP) ? PositionToMoveTo <= 2 : PositionToMoveTo >= 9 && pieceMoving.GetPieceSO().pieceType == PieceType.KODAMA)
+        {
+            pieceMoving.SetPieceSO(KodamaSamuraiPiece);
+        }
+        return true;
 	}
 
 	public bool ParachutePiece(Piece pieceParachuting, int PositionToParachuteTo)
 	{
-		//Check if the piece exists in its owner hand
-		if(pieceParachuting.GetPlayerOwnership() == PlayerOwnership.TOP ? _handPiecesTopPlayer.Exists(x => x == pieceParachuting) : _handPiecesBottomPlayer.Exists(x => x == pieceParachuting))
+        //Check if the piece exists in its owner hand
+        if (pieceParachuting.GetPlayerOwnership() == PlayerOwnership.TOP ? _handPiecesTopPlayer.Exists(x => x == pieceParachuting) : _handPiecesBottomPlayer.Exists(x => x == pieceParachuting))
 		{
 			//Check if the position is empty
 			if(!_gameBoard[PositionToParachuteTo].GetPieceSO())
