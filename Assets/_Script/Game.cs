@@ -287,7 +287,8 @@ public class Game : MonoBehaviour
 		}
 
 		OnMovement?.Invoke();
-		return true;
+        ChangeTurn();
+        return true;
 	}
 
 	public bool ParachutePiece(Piece pieceParachuting, int PositionToParachuteTo)
@@ -324,7 +325,8 @@ public class Game : MonoBehaviour
 		{
 			Debug.Log("[GameManager - ParachutePiece] Piece does not exist in its owner hand, wtf happened");
 		}
-		return false;
+		ChangeTurn();
+        return false;
 	}
 
 	public List<int> AllowedMove(Piece piece)
@@ -378,7 +380,7 @@ public class Game : MonoBehaviour
 		return _currentPlayerTurn;
 	}
 
-	public void ChangeTurn()
+	private void ChangeTurn()
 	{
 		switch (_currentPlayerTurn)
 		{
