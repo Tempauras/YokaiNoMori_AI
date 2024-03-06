@@ -29,5 +29,4 @@ public class PieceSO : ScriptableObject
 {
     public MovementType movementType;
     public PieceType pieceType;
-    public string shorthandNotation;
 }

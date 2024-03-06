@@ -2,7 +2,15 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Mathematics;
+using Unity.VisualScripting;
 using UnityEngine;
+
+public enum DecodeState
+{
+	BOARD,
+	PLAYERTURN,
+	HAND,
+}
 
 public class Game : MonoBehaviour
 {
@@ -28,45 +36,104 @@ public class Game : MonoBehaviour
 		DispatchPieces();
 	}
 
-	public void DecodeString(string StringToDecode)
+	public void DecodeBoardStateString(string BoardStateString)
 	{
-		foreach(char c in StringToDecode)
+		int boardNumber = 0;
+		foreach (char c in BoardStateString)
 		{
-			switch(c)
+			int multiplier = 1;
+			bool DoNotIncrement = false;
+			switch (c)
 			{
+				case 'b':
+					_gameBoard[boardNumber] = new Piece(KitsunePiece, PlayerOwnership.BOTTOM);
+                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    break;
 				case 'B':
+                    _gameBoard[boardNumber] = new Piece(KitsunePiece, PlayerOwnership.TOP);
+                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    break;
+				case 'p':
+                    _gameBoard[boardNumber] = new Piece(KodamaPiece, PlayerOwnership.BOTTOM);
+                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    break;
+				case 'P':
+                    _gameBoard[boardNumber] = new Piece(KodamaPiece, PlayerOwnership.TOP);
+                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    break;
+				case 'g':
+                    _gameBoard[boardNumber] = new Piece(KodamaSamuraiPiece, PlayerOwnership.BOTTOM);
+                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    break;
+				case 'G':
+                    _gameBoard[boardNumber] = new Piece(KodamaSamuraiPiece, PlayerOwnership.TOP);
+                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    break;
+				case 'k':
+                    _gameBoard[boardNumber] = new Piece(KoropokkuruPiece, PlayerOwnership.BOTTOM);
+                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    break;
+				case 'K':
+                    _gameBoard[boardNumber] = new Piece(KoropokkuruPiece, PlayerOwnership.TOP);
+                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    break;
+				case 'r':
+                    _gameBoard[boardNumber] = new Piece(TanukiPiece, PlayerOwnership.BOTTOM);
+                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    break;
+				case 'R':
+                    _gameBoard[boardNumber] = new Piece(TanukiPiece, PlayerOwnership.TOP);
+                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    break;
+				case '/':
+					DoNotIncrement = true;
+					break;
+				case ' ':
+					break;
+				case '\0':
+					break;
 				default:
+					int number = (int)char.GetNumericValue(c); 
+					if (number != -1)
+					{
+						multiplier = number;
+					}
 					break;
 			}
+			if (!DoNotIncrement)
+			{
+                boardNumber = boardNumber + (1 * multiplier);
+            }
 		}
 	}
 
 	public void DispatchPieces()
 	{
 		//Populate gameboard array and create pieces
-		_gameBoard[0] = new Piece(KitsunePiece, PlayerOwnership.BOTTOM);
-		_onGameBoardPieces.Add(_gameBoard[0]);
-
-		_gameBoard[1] = new Piece(KoropokkuruPiece, PlayerOwnership.BOTTOM);
-		_onGameBoardPieces.Add(_gameBoard[1]);
-
-		_gameBoard[2] = new Piece(TanukiPiece, PlayerOwnership.BOTTOM);
-		_onGameBoardPieces.Add(_gameBoard[2]);
-
-		_gameBoard[4] = new Piece(KodamaPiece, PlayerOwnership.BOTTOM);
-		_onGameBoardPieces.Add(_gameBoard[4]);
-
-		_gameBoard[7] = new Piece(KodamaPiece, PlayerOwnership.TOP);
-		_onGameBoardPieces.Add(_gameBoard[7]);
-
-		_gameBoard[9] = new Piece(TanukiPiece, PlayerOwnership.TOP);
-		_onGameBoardPieces.Add(_gameBoard[9]);
-
-		_gameBoard[10] = new Piece(KoropokkuruPiece, PlayerOwnership.TOP);
-		_onGameBoardPieces.Add(_gameBoard[10]);
-
-		_gameBoard[11] = new Piece(KitsunePiece, PlayerOwnership.TOP);
-		_onGameBoardPieces.Add(_gameBoard[11]);
+		DecodeBoardStateString(GameStartingString);
+		//_gameBoard[0] = new Piece(KitsunePiece, PlayerOwnership.BOTTOM);
+		//_onGameBoardPieces.Add(_gameBoard[0]);
+		//
+		//_gameBoard[1] = new Piece(KoropokkuruPiece, PlayerOwnership.BOTTOM);
+		//_onGameBoardPieces.Add(_gameBoard[1]);
+		//
+		//_gameBoard[2] = new Piece(TanukiPiece, PlayerOwnership.BOTTOM);
+		//_onGameBoardPieces.Add(_gameBoard[2]);
+		//
+		//_gameBoard[4] = new Piece(KodamaPiece, PlayerOwnership.BOTTOM);
+		//_onGameBoardPieces.Add(_gameBoard[4]);
+		//
+		//_gameBoard[7] = new Piece(KodamaPiece, PlayerOwnership.TOP);
+		//_onGameBoardPieces.Add(_gameBoard[7]);
+		//
+		//_gameBoard[9] = new Piece(TanukiPiece, PlayerOwnership.TOP);
+		//_onGameBoardPieces.Add(_gameBoard[9]);
+		//
+		//_gameBoard[10] = new Piece(KoropokkuruPiece, PlayerOwnership.TOP);
+		//_onGameBoardPieces.Add(_gameBoard[10]);
+		//
+		//_gameBoard[11] = new Piece(KitsunePiece, PlayerOwnership.TOP);
+		//_onGameBoardPieces.Add(_gameBoard[11]);
 
 		OnInit?.Invoke();
 	}
