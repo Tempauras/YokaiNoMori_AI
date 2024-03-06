@@ -88,6 +88,7 @@ GameObject:
   - component: {fileID: 2845207448395600020}
   - component: {fileID: 6361518646466696729}
   - component: {fileID: 3651133507638214479}
+  - component: {fileID: 1264401148909517466}
   m_Layer: 5
   m_Name: Piece
   m_TagString: Untagged
@@ -199,7 +200,19 @@ MonoBehaviour:
   m_Group: {fileID: 0}
   onValueChanged:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1264401148909517466}
+        m_TargetAssemblyTypeName: SFXSource, Assembly-CSharp
+        m_MethodName: Play
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   m_IsOn: 0
 --- !u!114 &3651133507638214479
 MonoBehaviour:
@@ -216,3 +229,16 @@ MonoBehaviour:
   m_Image: {fileID: 2845207448395600020}
   m_SelectPiece: {fileID: 6361518646466696729}
   m_PiecesSprites: {fileID: 11400000, guid: 04e972081a7c2254bb89b73c52db5a71, type: 2}
+--- !u!114 &1264401148909517466
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7903458178420098578}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 528ef6b8198a9624fba705f7a2446b5c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Sound: {fileID: 8300000, guid: 4581bcdc13526aa4fa75deaa13fb2aa4, type: 3}

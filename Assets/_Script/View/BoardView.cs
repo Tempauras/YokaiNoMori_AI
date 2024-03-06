@@ -13,6 +13,8 @@ public class BoardView : MonoBehaviour
 	[SerializeField] private PieceView m_PiecePrefab;
 	[SerializeField] private ToggleGroup m_PiecesGroup;
 
+	[SerializeField] private EndMenuBehaviour m_EndMenu;
+
 	private List<CellView> m_CellsViews = new List<CellView>();
 	private List<PieceView> m_PiecesViews = new List<PieceView>();
 	private Dictionary<Piece, PieceView> m_PieceToView = new Dictionary<Piece, PieceView>();
@@ -40,8 +42,18 @@ public class BoardView : MonoBehaviour
 
 			cellIdx++;
 		}
+	}
 
+	private void OnEnable()
+	{
 		m_GameModel.OnMovement += _OnMovement;
+		m_GameModel.OnEnd += _OnEnd;
+	}
+
+	private void OnDisable()
+	{
+		m_GameModel.OnMovement -= _OnMovement;
+		m_GameModel.OnEnd -= _OnEnd;
 	}
 
 	public void PlaySingle()
@@ -94,6 +106,31 @@ public class BoardView : MonoBehaviour
 		_UpdateBoardView();
 	}
 
+	private void _OnEnd(int iEndCode)
+	{
+		switch(iEndCode)
+		{
+			case 0:
+				m_EndMenu.ShowEndMenu("Draw.");
+				break;
+			case 1:
+				if(m_IsSingleplayer)
+					m_EndMenu.ShowEndMenu("You win!");
+				else
+					m_EndMenu.ShowEndMenu("Player 1 wins.");
+				break;
+			case 2:
+				if(m_IsSingleplayer)
+					m_EndMenu.ShowEndMenu("You lost.");
+				else
+					m_EndMenu.ShowEndMenu("Player 2 wins.");
+				break;
+			default:
+				Debug.LogError("Unsupported end game code");
+				break;
+		}
+	}
+
 	private void _UpdateBoardView()
 	{
 		ClearInteractableCells();
@@ -105,7 +142,10 @@ public class BoardView : MonoBehaviour
 		foreach(Piece piece in m_GameModel.GetTopHand())
 			_UpdatePieceView(piece, m_TopHand);
 
-		gameObject.transform.rotation = (m_IsBottomPlayerTurn || m_IsSingleplayer) ? Quaternion.identity : Quaternion.Euler(0, 0, 180);
+		if(m_IsSingleplayer)
+			return;
+
+		gameObject.transform.rotation = m_IsBottomPlayerTurn ? Quaternion.identity : Quaternion.Euler(0, 0, 180);
 	}
 
 	private void _UpdatePieceView(Piece iPiece, Transform iParent)

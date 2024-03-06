@@ -12,8 +12,9 @@ GameObject:
   - component: {fileID: 225901848685252089}
   - component: {fileID: 1792996639806458980}
   - component: {fileID: 2347339508380151798}
+  - component: {fileID: 1682746304756074851}
   m_Layer: 5
-  m_Name: Play
+  m_Name: Button
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -120,7 +121,32 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1792996639806458980}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1682746304756074851}
+        m_TargetAssemblyTypeName: SFXSource, Assembly-CSharp
+        m_MethodName: Play
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+--- !u!114 &1682746304756074851
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7957986877819360640}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 528ef6b8198a9624fba705f7a2446b5c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Sound: {fileID: 8300000, guid: 4581bcdc13526aa4fa75deaa13fb2aa4, type: 3}
 --- !u!1001 &5107433175665327863
 PrefabInstance:
   m_ObjectHideFlags: 0
