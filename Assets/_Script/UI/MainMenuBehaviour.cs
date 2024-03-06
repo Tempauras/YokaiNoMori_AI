@@ -5,20 +5,18 @@ using UnityEngine.UI;
 
 public class MainMenuBehaviour : MonoBehaviour
 {
-	// Start is called before the first frame update
-	private void Start()
-	{
-
-	}
+	[SerializeField] private BoardView m_Game;
 
 	public void StartPlayerVsMachine()
 	{
-
+		m_Game.PlaySingle();
+		gameObject.SetActive(false);
 	}
 
 	public void StartPlayerVsPlayer()
 	{
-
+		m_Game.PlayDuel();
+		gameObject.SetActive(false);
 	}
 
 	public void Quit()

@@ -13,10 +13,12 @@ public class CellView : MonoBehaviour
 	private void Start()
 	{
 		m_MoveButton.onClick.AddListener(_Move);
+		SetInteractable(false);
 	}
 
-	public void InitIdx(int iIdx)
+	public void InitIdx(BoardView iBoard, int iIdx)
 	{
+		m_BoardView = iBoard;
 		m_CellIdx = iIdx;
 	}
 
@@ -27,6 +29,6 @@ public class CellView : MonoBehaviour
 
 	private void _Move()
 	{
-
+		m_BoardView.MoveTo(m_CellIdx);
 	}
 }

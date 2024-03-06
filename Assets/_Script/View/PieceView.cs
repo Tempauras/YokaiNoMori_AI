@@ -21,13 +21,17 @@ public class PieceView : MonoBehaviour
 	private void _OnSelect(bool iSelect)
 	{
 		if(!iSelect)
+		{
+			m_BoardView.SelectPiece(null);
 			return;
+		}
 
 		m_BoardView.SelectPiece(m_PieceModel);
 	}
 
-	public void InitPiece(Piece iPiece)
+	public void InitPiece(BoardView iBoard, Piece iPiece)
 	{
+		m_BoardView = iBoard;
 		m_PieceModel = iPiece;
 		UpdateView();
 	}
@@ -46,5 +50,11 @@ public class PieceView : MonoBehaviour
 
 		PieceType pieceType = m_PieceModel.GetPieceSO().pieceType;
 		m_Image.sprite = m_PiecesSprites.Assets.Find(x => x.Piece == pieceType).Sprite;
+		transform.rotation = m_PieceModel.GetPlayerOwnership() == PlayerOwnership.BOTTOM ? Quaternion.identity : Quaternion.Euler(0, 0, 180);
+	}
+
+	public void SetInteractable()
+	{
+
 	}
 }

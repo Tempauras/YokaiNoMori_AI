@@ -1,22 +1,22 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
 
 public class BoardView : MonoBehaviour
 {
+	[SerializeField] private Game m_GameModel;
 	[SerializeField] private Transform m_CellsContainer;
 	[SerializeField] private Transform m_BottomHand;
 	[SerializeField] private Transform m_TopHand;
 
 	[SerializeField] private PieceView m_PiecePrefab;
 
-	private GameManager m_GameModel;
 	private List<CellView> m_CellsViews = new List<CellView>();
 	private List<PieceView> m_PiecesViews = new List<PieceView>();
 	private Dictionary<Piece, PieceView> m_PieceToView = new Dictionary<Piece, PieceView>();
 
 	private bool m_IsSingleplayer = true; // if false, local 2 player
+	private bool m_IsBottomPlayerTurn = true;
 
 	private Piece m_SelectedPiece = null;
 
@@ -34,7 +34,7 @@ public class BoardView : MonoBehaviour
 			}
 
 			m_CellsViews.Add(cellView);
-			cellView.InitIdx(cellIdx);
+			cellView.InitIdx(this, cellIdx);
 
 			cellIdx++;
 		}
@@ -59,6 +59,7 @@ public class BoardView : MonoBehaviour
 		m_PiecesViews.Clear();
 		m_PieceToView.Clear();
 		m_SelectedPiece = null;
+		m_IsBottomPlayerTurn = true;
 
 		ClearInteractableCells();
 	}
@@ -78,23 +79,32 @@ public class BoardView : MonoBehaviour
 			PieceView pieceView = Instantiate(m_PiecePrefab, m_CellsViews[cellIdx].transform);
 			m_PiecesViews.Add(pieceView);
 			m_PieceToView.Add(piece, pieceView);
-			pieceView.InitPiece(piece);
+			pieceView.InitPiece(this, piece);
 		}
 	}
 
 	private void _UpdateBoardView()
 	{
+		ClearInteractableCells();
 		for(int cellIdx = 0; cellIdx < 12; cellIdx++)
-		{
-			Piece piece = m_GameModel.GetCell(cellIdx);
-			if(piece == null)
-				continue;
+			_UpdatePieceView(m_GameModel.GetCell(cellIdx), m_CellsViews[cellIdx].transform);
 
-			PieceView pieceView = Instantiate(m_PiecePrefab, m_CellsViews[cellIdx].transform);
-			m_PiecesViews.Add(pieceView);
-			m_PieceToView.Add(piece, pieceView);
-			pieceView.InitPiece(piece);
-		}
+		foreach(Piece piece in m_GameModel.GetBottomHand())
+			_UpdatePieceView(piece, m_BottomHand);
+		foreach(Piece piece in m_GameModel.GetTopHand())
+			_UpdatePieceView(piece, m_TopHand);
+
+		//TODO manage turns
+	}
+
+	private void _UpdatePieceView(Piece iPiece, Transform iParent)
+	{
+		if(iPiece == null || !m_PieceToView.ContainsKey(iPiece))
+			return;
+
+		PieceView pieceView = m_PieceToView[iPiece];
+		pieceView.transform.SetParent(iParent, false);
+		pieceView.UpdateView();
 	}
 
 	public void SetInteractableCells(List<int> iCellIndices)
@@ -113,13 +123,15 @@ public class BoardView : MonoBehaviour
 	public void SelectPiece(Piece iPiece)
 	{
 		m_SelectedPiece = iPiece;
-		SetInteractableCells(iPiece.GetNeightbour());
-		// SetInteractableCells(m_GameModel.GetAllowedMoves(iPiece));
-		// TODO: set interactable cells
+		if(iPiece != null)
+			SetInteractableCells(m_GameModel.AllowedMove(iPiece));
+		else
+			ClearInteractableCells();
 	}
 
 	public void MoveTo(int iCellIdx)
 	{
 		m_GameModel.MovePieces(m_SelectedPiece, iCellIdx);
+		_UpdateBoardView();
 	}
 }

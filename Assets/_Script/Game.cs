@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GameManager : Singleton<GameManager>
+public class Game : MonoBehaviour
 {
 	public PieceSO KitsunePiece;
 	public PieceSO KoropokkuruPiece;
@@ -16,15 +16,14 @@ public class GameManager : Singleton<GameManager>
 	private List<Piece> _handPiecesTopPlayer = new List<Piece>();
 	private List<Piece> _handPiecesBottomPlayer = new List<Piece>();
 	// Start is called before the first frame update
+
+	public event Action OnInit;
+	public event Action OnMovement;
+	public event Action<int> OnEnd; // 0: draw ; 1: bottom win ; 2: top win
+
 	void Start()
 	{
 		DispatchPieces();
-	}
-
-	// Update is called once per frame
-	void Update()
-	{
-
 	}
 
 	public void DispatchPieces()
@@ -53,6 +52,8 @@ public class GameManager : Singleton<GameManager>
 
 		_gameBoard[11] = new Piece(KitsunePiece, PlayerOwnership.TOP);
 		_onGameBoardPieces.Add(_gameBoard[11]);
+
+		OnMovement.Invoke();
 	}
 
 	public bool MovePieces(Piece pieceMoving, int PositionToMoveTo)
@@ -69,6 +70,7 @@ public class GameManager : Singleton<GameManager>
 			Debug.Log("[GameManager - MovePieces] No valid movement, wtf happened");
 			return false;
 		}
+
 		if(_gameBoard[PositionToMoveTo].GetPieceSO())
 		{
 			if(pieceMoving.GetPlayerOwnership() == PlayerOwnership.TOP)
@@ -79,6 +81,7 @@ public class GameManager : Singleton<GameManager>
 			{
 				_handPiecesBottomPlayer.Add(_gameBoard[PositionToMoveTo]);
 			}
+			_gameBoard[PositionToMoveTo].SetPlayerOwnership(pieceMoving.GetPlayerOwnership());
 			_gameBoard[indexOfMovingPiece] = null;
 			_gameBoard[PositionToMoveTo] = pieceMoving;
 		}
@@ -87,6 +90,7 @@ public class GameManager : Singleton<GameManager>
 			_gameBoard[indexOfMovingPiece] = null;
 			_gameBoard[PositionToMoveTo] = pieceMoving;
 		}
+		OnMovement.Invoke();
 		return true;
 	}
 
@@ -107,6 +111,7 @@ public class GameManager : Singleton<GameManager>
 				{
 					_handPiecesBottomPlayer.Remove(pieceParachuting);
 				}
+				OnMovement.Invoke();
 				return true;
 			}
 			else
@@ -133,7 +138,7 @@ public class GameManager : Singleton<GameManager>
 		List<int> NeighbourSpaces = piece.GetNeighbour(indexOfMovingPiece);
 		foreach(int NeighbourSpace in NeighbourSpaces)
 		{
-			if(!_gameBoard[NeighbourSpace].GetPieceSO() || _gameBoard[NeighbourSpace].GetPlayerOwnership() != piece.GetPlayerOwnership())
+			if(_gameBoard[NeighbourSpace] == null || _gameBoard[NeighbourSpace].GetPlayerOwnership() != piece.GetPlayerOwnership())
 			{
 				availableSpace.Add(NeighbourSpace);
 			}
@@ -147,5 +152,15 @@ public class GameManager : Singleton<GameManager>
 		if(cellIdx < 0 || cellIdx >= 12)
 			return null;
 		return _gameBoard[cellIdx];
+	}
+
+	public List<Piece> GetTopHand()
+	{
+		return _handPiecesTopPlayer;
+	}
+
+	public List<Piece> GetBottomHand()
+	{
+		return _handPiecesBottomPlayer;
 	}
 }
