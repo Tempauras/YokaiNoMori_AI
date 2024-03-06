@@ -229,21 +229,21 @@ public class Game : MonoBehaviour
 	public bool MovePieces(Piece pieceMoving, int PositionToMoveTo)
 	{
 		PlayerOwnership ownerOfPiece = pieceMoving.GetPlayerOwnership();
-		if (ownerOfPiece == PlayerOwnership.TOP && _isTopWinningNextTurn )
+		if(ownerOfPiece == PlayerOwnership.TOP && _isTopWinningNextTurn)
 		{
-			if (_isTopWinningNextTurn)
+			if(_isTopWinningNextTurn)
 			{
-                OnEnd.Invoke(2);
-            }
+				OnEnd.Invoke(2);
+			}
 		}
 		else
 		{
-			if (_isBottomWinningNextTurn)
+			if(_isBottomWinningNextTurn)
 			{
 				OnEnd.Invoke(1);
 			}
 		}
-		if (ownerOfPiece != _currentPlayerTurn)
+		if(ownerOfPiece != _currentPlayerTurn)
 		{
 			return false;
 		}
@@ -253,6 +253,8 @@ public class Game : MonoBehaviour
 			List<int> allowedEnemyMove = new List<int>();
 			foreach(Piece piece in _gameBoard)
 			{
+				if(piece == null)
+					continue;
 				if(piece.GetPlayerOwnership() != ownerOfPiece)
 				{
 					allowedEnemyMove.AddRange(AllowedMove(piece));
@@ -264,7 +266,7 @@ public class Game : MonoBehaviour
 			}
 			else
 			{
-				if (ownerOfPiece == PlayerOwnership.TOP)
+				if(ownerOfPiece == PlayerOwnership.TOP)
 				{
 					_isTopWinningNextTurn = true;
 				}

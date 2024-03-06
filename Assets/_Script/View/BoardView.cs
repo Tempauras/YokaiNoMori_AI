@@ -82,19 +82,26 @@ public class BoardView : MonoBehaviour
 		m_GameModel.DispatchPieces();
 
 		for(int cellIdx = 0; cellIdx < 12; cellIdx++)
-		{
-			Piece piece = m_GameModel.GetCell(cellIdx);
-			if(piece == null)
-				continue;
+			_InitPiece(m_GameModel.GetCell(cellIdx), m_CellsViews[cellIdx].transform);
 
-			PieceView pieceView = Instantiate(m_PiecePrefab);
-			m_PiecesViews.Add(pieceView);
-			m_PieceToView.Add(piece, pieceView);
-			pieceView.InitPiece(this, piece, m_PiecesGroup);
-			_UpdatePieceView(piece, m_CellsViews[cellIdx].transform);
-		}
+		foreach(Piece bottomHandPiece in m_GameModel.GetBottomHand())
+			_InitPiece(bottomHandPiece, m_BottomHand);
+		foreach(Piece topHandPiece in m_GameModel.GetTopHand())
+			_InitPiece(topHandPiece, m_TopHand);
 
 		m_HUD.gameObject.SetActive(true);
+	}
+
+	private void _InitPiece(Piece iPiece, Transform iParent)
+	{
+		if(iPiece == null)
+			return;
+
+		PieceView pieceView = Instantiate(m_PiecePrefab);
+		m_PiecesViews.Add(pieceView);
+		m_PieceToView.Add(iPiece, pieceView);
+		pieceView.InitPiece(this, iPiece, m_PiecesGroup);
+		_UpdatePieceView(iPiece, iParent);
 	}
 
 	private void _OnMovement()
