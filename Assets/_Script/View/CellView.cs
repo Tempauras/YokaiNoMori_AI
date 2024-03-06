@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public class CellView : MonoBehaviour
 {
 	[SerializeField] private Button m_MoveButton;
+	[SerializeField] private Image m_ButtonView;
 
 	private BoardView m_BoardView;
 	private int m_CellIdx = -1;
@@ -24,7 +25,8 @@ public class CellView : MonoBehaviour
 
 	public void SetInteractable(bool iInteractable)
 	{
-		m_MoveButton.gameObject.SetActive(iInteractable);
+		m_MoveButton.enabled = iInteractable;
+		m_ButtonView.enabled = iInteractable;
 	}
 
 	private void _Move()

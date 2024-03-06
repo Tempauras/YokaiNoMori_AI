@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 477618322913653704}
   - component: {fileID: 3330830307362294646}
   - component: {fileID: 8799241290541237448}
+  - component: {fileID: 6993465525504683403}
   m_Layer: 5
   m_Name: Cell
   m_TagString: Untagged
@@ -52,6 +53,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_MoveButton: {fileID: 8799241290541237448}
+  m_ButtonView: {fileID: 3330830307362294646}
 --- !u!222 &477618322913653704
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -134,3 +136,27 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls: []
+--- !u!114 &6993465525504683403
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 861203068437078083}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a8695521f0d02e499659fee002a26c2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Padding:
+    m_Left: 0
+    m_Right: 0
+    m_Top: 0
+    m_Bottom: 0
+  m_ChildAlignment: 4
+  m_StartCorner: 0
+  m_StartAxis: 0
+  m_CellSize: {x: 150, y: 150}
+  m_Spacing: {x: 0, y: 0}
+  m_Constraint: 0
+  m_ConstraintCount: 2

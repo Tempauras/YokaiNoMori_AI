@@ -30,9 +30,9 @@ public class Game : MonoBehaviour
 
 	public void DecodeString(string StringToDecode)
 	{
-		foreach (char c in StringToDecode)
+		foreach(char c in StringToDecode)
 		{
-			switch (c)
+			switch(c)
 			{
 				case 'B':
 				default:
@@ -68,17 +68,14 @@ public class Game : MonoBehaviour
 		_gameBoard[11] = new Piece(KitsunePiece, PlayerOwnership.TOP);
 		_onGameBoardPieces.Add(_gameBoard[11]);
 
-		OnMovement.Invoke();
+		OnInit?.Invoke();
 	}
 
 	public bool MovePieces(Piece pieceMoving, int PositionToMoveTo)
 	{
 		int indexOfMovingPiece = Array.IndexOf(_gameBoard, pieceMoving);
 		if(indexOfMovingPiece == -1)
-		{
-			Debug.Log("[GameManager - MovePieces] Pieces not in gameboard, wtf happened");
-			return false;
-		}
+			return ParachutePiece(pieceMoving, PositionToMoveTo);
 
 		if(pieceMoving.GetNeighbour(indexOfMovingPiece).Count <= 0)
 		{
@@ -86,7 +83,7 @@ public class Game : MonoBehaviour
 			return false;
 		}
 
-		if(_gameBoard[PositionToMoveTo].GetPieceSO())
+		if(_gameBoard[PositionToMoveTo] != null && _gameBoard[PositionToMoveTo].GetPieceSO() != null)
 		{
 			if(pieceMoving.GetPlayerOwnership() == PlayerOwnership.TOP)
 			{
@@ -97,29 +94,27 @@ public class Game : MonoBehaviour
 				_handPiecesBottomPlayer.Add(_gameBoard[PositionToMoveTo]);
 			}
 			_gameBoard[PositionToMoveTo].SetPlayerOwnership(pieceMoving.GetPlayerOwnership());
-			_gameBoard[indexOfMovingPiece] = null;
-			_gameBoard[PositionToMoveTo] = pieceMoving;
 		}
-		else
+
+		_gameBoard[indexOfMovingPiece] = null;
+		_gameBoard[PositionToMoveTo] = pieceMoving;
+
+		if((pieceMoving.GetPlayerOwnership() == PlayerOwnership.TOP) ? PositionToMoveTo <= 2 : PositionToMoveTo >= 9 && pieceMoving.GetPieceSO().pieceType == PieceType.KODAMA)
 		{
-			_gameBoard[indexOfMovingPiece] = null;
-			_gameBoard[PositionToMoveTo] = pieceMoving;
+			pieceMoving.SetPieceSO(KodamaSamuraiPiece);
 		}
-		OnMovement.Invoke();
-        if ((pieceMoving.GetPlayerOwnership() == PlayerOwnership.TOP) ? PositionToMoveTo <= 2 : PositionToMoveTo >= 9 && pieceMoving.GetPieceSO().pieceType == PieceType.KODAMA)
-        {
-            pieceMoving.SetPieceSO(KodamaSamuraiPiece);
-        }
-        return true;
+
+		OnMovement?.Invoke();
+		return true;
 	}
 
 	public bool ParachutePiece(Piece pieceParachuting, int PositionToParachuteTo)
 	{
-        //Check if the piece exists in its owner hand
-        if (pieceParachuting.GetPlayerOwnership() == PlayerOwnership.TOP ? _handPiecesTopPlayer.Exists(x => x == pieceParachuting) : _handPiecesBottomPlayer.Exists(x => x == pieceParachuting))
+		//Check if the piece exists in its owner hand
+		if(pieceParachuting.GetPlayerOwnership() == PlayerOwnership.TOP ? _handPiecesTopPlayer.Exists(x => x == pieceParachuting) : _handPiecesBottomPlayer.Exists(x => x == pieceParachuting))
 		{
 			//Check if the position is empty
-			if(!_gameBoard[PositionToParachuteTo].GetPieceSO())
+			if(_gameBoard[PositionToParachuteTo] == null || _gameBoard[PositionToParachuteTo].GetPieceSO() == null)
 			{
 				_gameBoard[PositionToParachuteTo] = pieceParachuting;
 				if(pieceParachuting.GetPlayerOwnership() == PlayerOwnership.TOP)
@@ -130,7 +125,7 @@ public class Game : MonoBehaviour
 				{
 					_handPiecesBottomPlayer.Remove(pieceParachuting);
 				}
-				OnMovement.Invoke();
+				OnMovement?.Invoke();
 				return true;
 			}
 			else
@@ -148,18 +143,26 @@ public class Game : MonoBehaviour
 	public List<int> AllowedMove(Piece piece)
 	{
 		int indexOfMovingPiece = Array.IndexOf(_gameBoard, piece);
+		PlayerOwnership player = piece.GetPlayerOwnership();
+		List<int> availableSpace = new List<int>();
 		if(indexOfMovingPiece == -1)
 		{
-			Debug.Log("[GameManager - MovePieces] Pieces not in gameboard, wtf happened");
-			return new List<int>();
-		}
-		List<int> availableSpace = new List<int>();
-		List<int> NeighbourSpaces = piece.GetNeighbour(indexOfMovingPiece);
-		foreach(int NeighbourSpace in NeighbourSpaces)
-		{
-			if(_gameBoard[NeighbourSpace] == null || _gameBoard[NeighbourSpace].GetPlayerOwnership() != piece.GetPlayerOwnership())
+			for(int i = 0; i < 12; i++)
 			{
-				availableSpace.Add(NeighbourSpace);
+				Piece boardPiece = _gameBoard[i];
+				if(boardPiece != null && boardPiece.GetPieceSO() != null)
+					continue;
+				availableSpace.Add(i);
+			}
+			return availableSpace;
+		}
+
+		List<int> neighbourSpaces = piece.GetNeighbour(indexOfMovingPiece);
+		foreach(int neighbourSpace in neighbourSpaces)
+		{
+			if(_gameBoard[neighbourSpace] == null || _gameBoard[neighbourSpace].GetPlayerOwnership() != piece.GetPlayerOwnership())
+			{
+				availableSpace.Add(neighbourSpace);
 			}
 		}
 

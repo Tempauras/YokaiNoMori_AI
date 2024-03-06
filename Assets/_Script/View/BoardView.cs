@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class BoardView : MonoBehaviour
 {
@@ -10,6 +11,7 @@ public class BoardView : MonoBehaviour
 	[SerializeField] private Transform m_TopHand;
 
 	[SerializeField] private PieceView m_PiecePrefab;
+	[SerializeField] private ToggleGroup m_PiecesGroup;
 
 	private List<CellView> m_CellsViews = new List<CellView>();
 	private List<PieceView> m_PiecesViews = new List<PieceView>();
@@ -38,6 +40,8 @@ public class BoardView : MonoBehaviour
 
 			cellIdx++;
 		}
+
+		m_GameModel.OnMovement += _OnMovement;
 	}
 
 	public void PlaySingle()
@@ -76,11 +80,18 @@ public class BoardView : MonoBehaviour
 			if(piece == null)
 				continue;
 
-			PieceView pieceView = Instantiate(m_PiecePrefab, m_CellsViews[cellIdx].transform);
+			PieceView pieceView = Instantiate(m_PiecePrefab);
 			m_PiecesViews.Add(pieceView);
 			m_PieceToView.Add(piece, pieceView);
-			pieceView.InitPiece(this, piece);
+			pieceView.InitPiece(this, piece, m_PiecesGroup);
+			_UpdatePieceView(piece, m_CellsViews[cellIdx].transform);
 		}
+	}
+
+	private void _OnMovement()
+	{
+		m_IsBottomPlayerTurn = !m_IsBottomPlayerTurn;
+		_UpdateBoardView();
 	}
 
 	private void _UpdateBoardView()
@@ -94,7 +105,7 @@ public class BoardView : MonoBehaviour
 		foreach(Piece piece in m_GameModel.GetTopHand())
 			_UpdatePieceView(piece, m_TopHand);
 
-		//TODO manage turns
+		gameObject.transform.rotation = (m_IsBottomPlayerTurn || m_IsSingleplayer) ? Quaternion.identity : Quaternion.Euler(0, 0, 180);
 	}
 
 	private void _UpdatePieceView(Piece iPiece, Transform iParent)
@@ -105,6 +116,11 @@ public class BoardView : MonoBehaviour
 		PieceView pieceView = m_PieceToView[iPiece];
 		pieceView.transform.SetParent(iParent, false);
 		pieceView.UpdateView();
+
+		if(m_IsSingleplayer)
+			pieceView.SetInteractable((iPiece.GetPlayerOwnership() == PlayerOwnership.BOTTOM) && m_IsBottomPlayerTurn);
+		else
+			pieceView.SetInteractable((iPiece.GetPlayerOwnership() == PlayerOwnership.BOTTOM) == m_IsBottomPlayerTurn);
 	}
 
 	public void SetInteractableCells(List<int> iCellIndices)
@@ -132,6 +148,5 @@ public class BoardView : MonoBehaviour
 	public void MoveTo(int iCellIdx)
 	{
 		m_GameModel.MovePieces(m_SelectedPiece, iCellIdx);
-		_UpdateBoardView();
 	}
 }

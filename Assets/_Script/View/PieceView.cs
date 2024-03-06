@@ -29,10 +29,11 @@ public class PieceView : MonoBehaviour
 		m_BoardView.SelectPiece(m_PieceModel);
 	}
 
-	public void InitPiece(BoardView iBoard, Piece iPiece)
+	public void InitPiece(BoardView iBoard, Piece iPiece, ToggleGroup iGroup)
 	{
 		m_BoardView = iBoard;
 		m_PieceModel = iPiece;
+		m_SelectPiece.group = iGroup;
 		UpdateView();
 	}
 
@@ -50,11 +51,12 @@ public class PieceView : MonoBehaviour
 
 		PieceType pieceType = m_PieceModel.GetPieceSO().pieceType;
 		m_Image.sprite = m_PiecesSprites.Assets.Find(x => x.Piece == pieceType).Sprite;
-		transform.rotation = m_PieceModel.GetPlayerOwnership() == PlayerOwnership.BOTTOM ? Quaternion.identity : Quaternion.Euler(0, 0, 180);
+		transform.localRotation = m_PieceModel.GetPlayerOwnership() == PlayerOwnership.BOTTOM ? Quaternion.identity : Quaternion.Euler(0, 0, 180);
 	}
 
-	public void SetInteractable()
+	public void SetInteractable(bool iIsInteractable)
 	{
-
+		m_SelectPiece.enabled = iIsInteractable;
+		m_SelectPiece.isOn = false;
 	}
 }
