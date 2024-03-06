@@ -33,6 +33,9 @@ public class Game : MonoBehaviour
 	public event Action OnMovement;
 	public event Action<int> OnEnd; // 0: draw ; 1: bottom win ; 2: top win
 
+	private bool _isBottomWinningNextTurn = false;
+	private bool _isTopWinningNextTurn = true;
+
 	void Start()
 	{
 		DispatchPieces();
@@ -224,6 +227,20 @@ public class Game : MonoBehaviour
 	public bool MovePieces(Piece pieceMoving, int PositionToMoveTo)
 	{
 		PlayerOwnership ownerOfPiece = pieceMoving.GetPlayerOwnership();
+		if (ownerOfPiece == PlayerOwnership.TOP && _isTopWinningNextTurn )
+		{
+			if (_isTopWinningNextTurn)
+			{
+                OnEnd.Invoke(2);
+            }
+		}
+		else
+		{
+			if (_isBottomWinningNextTurn)
+			{
+				OnEnd.Invoke(1);
+			}
+		}
 		if (ownerOfPiece != _currentPlayerTurn)
 		{
 			return false;
@@ -242,7 +259,19 @@ public class Game : MonoBehaviour
 			if (!allowedEnemyMove.Contains(PositionToMoveTo))
 			{
 				OnEnd.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
-            }
+			}
+			else
+			{
+				if (ownerOfPiece == PlayerOwnership.TOP)
+				{
+					_isTopWinningNextTurn = true;
+				}
+				else
+				{
+					_isBottomWinningNextTurn = true;
+				}
+				_currentPlayerTurn
+			}
 			
 		}
 		int indexOfMovingPiece = Array.IndexOf(_gameBoard, pieceMoving);
