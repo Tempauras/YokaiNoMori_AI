@@ -10,6 +10,7 @@ public enum DecodeState
 	BOARD,
 	PLAYERTURN,
 	HAND,
+	END,
 }
 
 public class Game : MonoBehaviour
@@ -26,6 +27,7 @@ public class Game : MonoBehaviour
 	private List<Piece> _onGameBoardPieces = new List<Piece>();
 	private List<Piece> _handPiecesTopPlayer = new List<Piece>();
 	private List<Piece> _handPiecesBottomPlayer = new List<Piece>();
+	private PlayerOwnership _currentPlayerTurn = PlayerOwnership.BOTTOM;
 
 	public event Action OnInit;
 	public event Action OnMovement;
@@ -39,56 +41,160 @@ public class Game : MonoBehaviour
 	public void DecodeBoardStateString(string BoardStateString)
 	{
 		int boardNumber = 0;
+		DecodeState state = DecodeState.BOARD;
 		foreach (char c in BoardStateString)
 		{
 			int multiplier = 1;
 			bool DoNotIncrement = false;
 			switch (c)
 			{
+				case 'w':
+					if (state == DecodeState.PLAYERTURN)
+					{
+						_currentPlayerTurn = PlayerOwnership.TOP;
+					}
+					break;
 				case 'b':
-					_gameBoard[boardNumber] = new Piece(KitsunePiece, PlayerOwnership.BOTTOM);
-                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+					if (state == DecodeState.BOARD)
+					{
+                        _gameBoard[boardNumber] = new Piece(KitsunePiece, PlayerOwnership.BOTTOM);
+                        _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+					}
+					else
+					{
+						if (state == DecodeState.PLAYERTURN)
+						{
+							_currentPlayerTurn = PlayerOwnership.BOTTOM;
+						}
+						else
+						{
+                            _handPiecesBottomPlayer.Add(new Piece(KitsunePiece, PlayerOwnership.BOTTOM));
+                        }
+					}
+
                     break;
 				case 'B':
-                    _gameBoard[boardNumber] = new Piece(KitsunePiece, PlayerOwnership.TOP);
-                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+					if (state == DecodeState.BOARD)
+					{
+                        _gameBoard[boardNumber] = new Piece(KitsunePiece, PlayerOwnership.TOP);
+                        _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    }
+                    else
+                    {
+                        _handPiecesTopPlayer.Add(new Piece(KitsunePiece, PlayerOwnership.TOP));
+                    }
                     break;
 				case 'p':
-                    _gameBoard[boardNumber] = new Piece(KodamaPiece, PlayerOwnership.BOTTOM);
-                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+					if (state == DecodeState.BOARD)
+					{
+                        _gameBoard[boardNumber] = new Piece(KodamaPiece, PlayerOwnership.BOTTOM);
+                        _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    }
+                    else
+                    {
+                        _handPiecesBottomPlayer.Add(new Piece(KodamaPiece, PlayerOwnership.BOTTOM));
+                    }
+
                     break;
 				case 'P':
-                    _gameBoard[boardNumber] = new Piece(KodamaPiece, PlayerOwnership.TOP);
-                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+					if(state == DecodeState.BOARD)
+					{
+                        _gameBoard[boardNumber] = new Piece(KodamaPiece, PlayerOwnership.TOP);
+                        _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    }
+                    else
+                    {
+                        _handPiecesTopPlayer.Add(new Piece(KodamaPiece, PlayerOwnership.TOP));
+                    }
+
                     break;
 				case 'g':
-                    _gameBoard[boardNumber] = new Piece(KodamaSamuraiPiece, PlayerOwnership.BOTTOM);
-                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    if (state == DecodeState.BOARD)
+                    {
+                        _gameBoard[boardNumber] = new Piece(KodamaSamuraiPiece, PlayerOwnership.BOTTOM);
+                        _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    }
+                    else
+                    {
+                        _handPiecesBottomPlayer.Add(new Piece(KodamaSamuraiPiece, PlayerOwnership.BOTTOM));
+                    }
+
                     break;
 				case 'G':
-                    _gameBoard[boardNumber] = new Piece(KodamaSamuraiPiece, PlayerOwnership.TOP);
-                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    if (state == DecodeState.BOARD)
+					{
+                        _gameBoard[boardNumber] = new Piece(KodamaSamuraiPiece, PlayerOwnership.TOP);
+                        _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    }
+                    else
+                    {
+                        _handPiecesTopPlayer.Add(new Piece(KodamaSamuraiPiece, PlayerOwnership.TOP));
+                    }
+
                     break;
 				case 'k':
-                    _gameBoard[boardNumber] = new Piece(KoropokkuruPiece, PlayerOwnership.BOTTOM);
-                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    if (state == DecodeState.BOARD)
+					{
+                        _gameBoard[boardNumber] = new Piece(KoropokkuruPiece, PlayerOwnership.BOTTOM);
+                        _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    }
+                    else
+                    {
+                        _handPiecesBottomPlayer.Add(new Piece(KoropokkuruPiece, PlayerOwnership.BOTTOM));
+                    }
+
                     break;
 				case 'K':
-                    _gameBoard[boardNumber] = new Piece(KoropokkuruPiece, PlayerOwnership.TOP);
-                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    if (state == DecodeState.BOARD)
+					{
+                        _gameBoard[boardNumber] = new Piece(KoropokkuruPiece, PlayerOwnership.TOP);
+                        _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    }
+                    else
+                    {
+                        _handPiecesTopPlayer.Add(new Piece(KoropokkuruPiece, PlayerOwnership.TOP));
+                    }
+
                     break;
 				case 'r':
-                    _gameBoard[boardNumber] = new Piece(TanukiPiece, PlayerOwnership.BOTTOM);
-                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    if (state == DecodeState.BOARD)
+					{
+                        _gameBoard[boardNumber] = new Piece(TanukiPiece, PlayerOwnership.BOTTOM);
+                        _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    }
+                    else
+                    {
+                        _handPiecesBottomPlayer.Add(new Piece(TanukiPiece, PlayerOwnership.BOTTOM));
+                    }
+
                     break;
 				case 'R':
-                    _gameBoard[boardNumber] = new Piece(TanukiPiece, PlayerOwnership.TOP);
-                    _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    if (state == DecodeState.BOARD)
+					{
+                        _gameBoard[boardNumber] = new Piece(TanukiPiece, PlayerOwnership.TOP);
+                        _onGameBoardPieces.Add(_gameBoard[boardNumber]);
+                    }
+                    else
+                    {
+                        _handPiecesTopPlayer.Add(new Piece(TanukiPiece, PlayerOwnership.TOP));
+                    }
+
                     break;
 				case '/':
 					DoNotIncrement = true;
 					break;
 				case ' ':
+					switch (state)
+					{
+						case DecodeState.BOARD:
+							state = DecodeState.PLAYERTURN;
+							break;
+						case DecodeState.PLAYERTURN:
+                            state = DecodeState.HAND;
+                            break;
+						case DecodeState.HAND:
+							return;
+					}
 					break;
 				case '\0':
 					break;
@@ -111,29 +217,6 @@ public class Game : MonoBehaviour
 	{
 		//Populate gameboard array and create pieces
 		DecodeBoardStateString(GameStartingString);
-		//_gameBoard[0] = new Piece(KitsunePiece, PlayerOwnership.BOTTOM);
-		//_onGameBoardPieces.Add(_gameBoard[0]);
-		//
-		//_gameBoard[1] = new Piece(KoropokkuruPiece, PlayerOwnership.BOTTOM);
-		//_onGameBoardPieces.Add(_gameBoard[1]);
-		//
-		//_gameBoard[2] = new Piece(TanukiPiece, PlayerOwnership.BOTTOM);
-		//_onGameBoardPieces.Add(_gameBoard[2]);
-		//
-		//_gameBoard[4] = new Piece(KodamaPiece, PlayerOwnership.BOTTOM);
-		//_onGameBoardPieces.Add(_gameBoard[4]);
-		//
-		//_gameBoard[7] = new Piece(KodamaPiece, PlayerOwnership.TOP);
-		//_onGameBoardPieces.Add(_gameBoard[7]);
-		//
-		//_gameBoard[9] = new Piece(TanukiPiece, PlayerOwnership.TOP);
-		//_onGameBoardPieces.Add(_gameBoard[9]);
-		//
-		//_gameBoard[10] = new Piece(KoropokkuruPiece, PlayerOwnership.TOP);
-		//_onGameBoardPieces.Add(_gameBoard[10]);
-		//
-		//_gameBoard[11] = new Piece(KitsunePiece, PlayerOwnership.TOP);
-		//_onGameBoardPieces.Add(_gameBoard[11]);
 
 		OnInit?.Invoke();
 	}
@@ -141,6 +224,10 @@ public class Game : MonoBehaviour
 	public bool MovePieces(Piece pieceMoving, int PositionToMoveTo)
 	{
 		PlayerOwnership ownerOfPiece = pieceMoving.GetPlayerOwnership();
+		if (ownerOfPiece != _currentPlayerTurn)
+		{
+			return false;
+		}
 		if (pieceMoving.GetPieceSO().pieceType == PieceType.KOROPOKKURU &&
             ((pieceMoving.GetPlayerOwnership() == PlayerOwnership.TOP) ? (PositionToMoveTo <= 2) : (PositionToMoveTo >= 9)))
 		{
@@ -205,14 +292,19 @@ public class Game : MonoBehaviour
 
 	public bool ParachutePiece(Piece pieceParachuting, int PositionToParachuteTo)
 	{
-		//Check if the piece exists in its owner hand
-		if(pieceParachuting.GetPlayerOwnership() == PlayerOwnership.TOP ? _handPiecesTopPlayer.Exists(x => x == pieceParachuting) : _handPiecesBottomPlayer.Exists(x => x == pieceParachuting))
+        PlayerOwnership ownerOfPiece = pieceParachuting.GetPlayerOwnership();
+        if (ownerOfPiece != _currentPlayerTurn)
+        {
+            return false;
+        }
+        //Check if the piece exists in its owner hand
+        if (ownerOfPiece == PlayerOwnership.TOP ? _handPiecesTopPlayer.Exists(x => x == pieceParachuting) : _handPiecesBottomPlayer.Exists(x => x == pieceParachuting))
 		{
 			//Check if the position is empty
 			if(_gameBoard[PositionToParachuteTo] == null || _gameBoard[PositionToParachuteTo].GetPieceSO() == null)
 			{
 				_gameBoard[PositionToParachuteTo] = pieceParachuting;
-				if(pieceParachuting.GetPlayerOwnership() == PlayerOwnership.TOP)
+				if(ownerOfPiece == PlayerOwnership.TOP)
 				{
 					_handPiecesTopPlayer.Remove(pieceParachuting);
 				}
@@ -279,5 +371,26 @@ public class Game : MonoBehaviour
 	public List<Piece> GetBottomHand()
 	{
 		return _handPiecesBottomPlayer;
+	}
+
+	public PlayerOwnership GetCurrentPlayer()
+	{
+		return _currentPlayerTurn;
+	}
+
+	public void ChangeTurn()
+	{
+		switch (_currentPlayerTurn)
+		{
+			case PlayerOwnership.TOP:
+				_currentPlayerTurn = PlayerOwnership.BOTTOM;
+
+                break;
+			case PlayerOwnership.BOTTOM:
+				_currentPlayerTurn = PlayerOwnership.TOP;
+				break;
+			default:
+				break;
+		}
 	}
 }
