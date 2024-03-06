@@ -9,6 +9,7 @@ public class BoardView : MonoBehaviour
 	[SerializeField] private Transform m_CellsContainer;
 	[SerializeField] private Transform m_BottomHand;
 	[SerializeField] private Transform m_TopHand;
+	[SerializeField] private HUDBehaviour m_HUD;
 
 	[SerializeField] private PieceView m_PiecePrefab;
 	[SerializeField] private ToggleGroup m_PiecesGroup;
@@ -21,6 +22,7 @@ public class BoardView : MonoBehaviour
 
 	private bool m_IsSingleplayer = true; // if false, local 2 player
 	private bool m_IsBottomPlayerTurn = true;
+	private bool m_IsEnded = false;
 
 	private Piece m_SelectedPiece = null;
 
@@ -42,18 +44,9 @@ public class BoardView : MonoBehaviour
 
 			cellIdx++;
 		}
-	}
 
-	private void OnEnable()
-	{
 		m_GameModel.OnMovement += _OnMovement;
 		m_GameModel.OnEnd += _OnEnd;
-	}
-
-	private void OnDisable()
-	{
-		m_GameModel.OnMovement -= _OnMovement;
-		m_GameModel.OnEnd -= _OnEnd;
 	}
 
 	public void PlaySingle()
@@ -68,7 +61,7 @@ public class BoardView : MonoBehaviour
 		_InitGame();
 	}
 
-	private void _Clear()
+	public void Clear()
 	{
 		foreach(PieceView pieceView in m_PiecesViews)
 			Destroy(pieceView.gameObject);
@@ -76,13 +69,15 @@ public class BoardView : MonoBehaviour
 		m_PieceToView.Clear();
 		m_SelectedPiece = null;
 		m_IsBottomPlayerTurn = true;
+		m_IsEnded = false;
+		m_HUD.gameObject.SetActive(false);
 
 		ClearInteractableCells();
 	}
 
 	private void _InitGame()
 	{
-		_Clear();
+		Clear();
 
 		m_GameModel.DispatchPieces();
 
@@ -98,6 +93,8 @@ public class BoardView : MonoBehaviour
 			pieceView.InitPiece(this, piece, m_PiecesGroup);
 			_UpdatePieceView(piece, m_CellsViews[cellIdx].transform);
 		}
+
+		m_HUD.gameObject.SetActive(true);
 	}
 
 	private void _OnMovement()
@@ -108,6 +105,8 @@ public class BoardView : MonoBehaviour
 
 	private void _OnEnd(int iEndCode)
 	{
+		m_IsEnded = true;
+		m_HUD.gameObject.SetActive(false);
 		switch(iEndCode)
 		{
 			case 0:
@@ -118,12 +117,14 @@ public class BoardView : MonoBehaviour
 					m_EndMenu.ShowEndMenu("You win!");
 				else
 					m_EndMenu.ShowEndMenu("Player 1 wins.");
+				m_IsBottomPlayerTurn = true;
 				break;
 			case 2:
 				if(m_IsSingleplayer)
 					m_EndMenu.ShowEndMenu("You lost.");
 				else
 					m_EndMenu.ShowEndMenu("Player 2 wins.");
+				m_IsBottomPlayerTurn = true;
 				break;
 			default:
 				Debug.LogError("Unsupported end game code");
@@ -143,9 +144,15 @@ public class BoardView : MonoBehaviour
 			_UpdatePieceView(piece, m_TopHand);
 
 		if(m_IsSingleplayer)
+		{
+			m_HUD.SetText(m_IsBottomPlayerTurn ? "Your turn" : "AI's turn");
 			return;
+		}
 
-		gameObject.transform.rotation = m_IsBottomPlayerTurn ? Quaternion.identity : Quaternion.Euler(0, 0, 180);
+		m_HUD.SetText($"Player {(m_IsBottomPlayerTurn ? 1 : 2)}'s turn");
+
+		if(!m_IsEnded)
+			gameObject.transform.rotation = m_IsBottomPlayerTurn ? Quaternion.identity : Quaternion.Euler(0, 0, 180);
 	}
 
 	private void _UpdatePieceView(Piece iPiece, Transform iParent)
@@ -156,6 +163,12 @@ public class BoardView : MonoBehaviour
 		PieceView pieceView = m_PieceToView[iPiece];
 		pieceView.transform.SetParent(iParent, false);
 		pieceView.UpdateView();
+
+		if(m_IsEnded)
+		{
+			pieceView.SetInteractable(false);
+			return;
+		}
 
 		if(m_IsSingleplayer)
 			pieceView.SetInteractable((iPiece.GetPlayerOwnership() == PlayerOwnership.BOTTOM) && m_IsBottomPlayerTurn);
