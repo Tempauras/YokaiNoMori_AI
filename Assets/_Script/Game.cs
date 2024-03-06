@@ -94,12 +94,15 @@ public class Game : MonoBehaviour
 				_handPiecesBottomPlayer.Add(_gameBoard[PositionToMoveTo]);
 			}
 			_gameBoard[PositionToMoveTo].SetPlayerOwnership(pieceMoving.GetPlayerOwnership());
+			if(_gameBoard[PositionToMoveTo].GetPieceSO().pieceType == PieceType.KODAMA_SAMURAI)
+				_gameBoard[PositionToMoveTo].SetPieceSO(KodamaPiece);
 		}
 
 		_gameBoard[indexOfMovingPiece] = null;
 		_gameBoard[PositionToMoveTo] = pieceMoving;
 
-		if((pieceMoving.GetPlayerOwnership() == PlayerOwnership.TOP) ? PositionToMoveTo <= 2 : PositionToMoveTo >= 9 && pieceMoving.GetPieceSO().pieceType == PieceType.KODAMA)
+		if(pieceMoving.GetPieceSO().pieceType == PieceType.KODAMA &&
+			((pieceMoving.GetPlayerOwnership() == PlayerOwnership.TOP) ? (PositionToMoveTo <= 2) : (PositionToMoveTo >= 9)))
 		{
 			pieceMoving.SetPieceSO(KodamaSamuraiPiece);
 		}
