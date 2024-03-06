@@ -340,6 +340,7 @@ public class Game : MonoBehaviour
 					_handPiecesBottomPlayer.Remove(pieceParachuting);
 				}
 				OnMovement?.Invoke();
+				ChangeTurn();
 				return true;
 			}
 			else
@@ -351,7 +352,6 @@ public class Game : MonoBehaviour
 		{
 			Debug.Log("[GameManager - ParachutePiece] Piece does not exist in its owner hand, wtf happened");
 		}
-		ChangeTurn();
 		return false;
 	}
 
