@@ -20,13 +20,7 @@ public class PieceView : MonoBehaviour
 
 	private void _OnSelect(bool iSelect)
 	{
-		if(!iSelect)
-		{
-			m_BoardView.SelectPiece(null);
-			return;
-		}
-
-		m_BoardView.SelectPiece(m_PieceModel);
+		m_BoardView.SelectPiece(iSelect ? m_PieceModel : null);
 	}
 
 	public void InitPiece(BoardView iBoard, Piece iPiece, ToggleGroup iGroup)

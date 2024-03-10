@@ -207,6 +207,7 @@ GameObject:
   - component: {fileID: 7560249977939643205}
   - component: {fileID: 4365587495601730317}
   - component: {fileID: 5834440007550061905}
+  - component: {fileID: 4138595458570651935}
   m_Layer: 5
   m_Name: Gameboard
   m_TagString: Untagged
@@ -250,6 +251,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_GameModel: {fileID: 4365587495601730317}
+  m_Timer: {fileID: 4138595458570651935}
   m_CellsContainer: {fileID: 8570689857173732860}
   m_BottomHand: {fileID: 2363320514226163038}
   m_TopHand: {fileID: 4199333060419059738}
@@ -288,6 +290,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_AllowSwitchOff: 1
+--- !u!114 &4138595458570651935
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2134459763218196885}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b81f7532b851ea04f8dcadfbbc105f08, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Time1Display: {fileID: 0}
+  m_Time2Display: {fileID: 0}
 --- !u!1 &3911566744305794045
 GameObject:
   m_ObjectHideFlags: 0

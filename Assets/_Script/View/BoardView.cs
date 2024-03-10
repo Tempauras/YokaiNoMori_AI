@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public class BoardView : MonoBehaviour
 {
 	[SerializeField] private Game m_GameModel;
+	[SerializeField] private GameTimer m_Timer;
 	[SerializeField] private Transform m_CellsContainer;
 	[SerializeField] private Transform m_BottomHand;
 	[SerializeField] private Transform m_TopHand;
@@ -26,6 +27,12 @@ public class BoardView : MonoBehaviour
 
 	private Piece m_SelectedPiece = null;
 
+	private float m_InitialTime = 0;
+	private float m_TimeIncrement = 0;
+
+	private bool m_DoOverrideFirstPlayer = false;
+	private bool m_IsFirstPlayerBottom = true;
+
 	// Start is called before the first frame update
 	private void Start()
 	{
@@ -45,20 +52,21 @@ public class BoardView : MonoBehaviour
 			cellIdx++;
 		}
 
+		m_GameModel.OnInit += _OnInit;
 		m_GameModel.OnMovement += _OnMovement;
 		m_GameModel.OnEnd += _OnEnd;
+
+		m_Timer.OnEnd += _OnTimerEnded;
 	}
 
-	public void PlaySingle()
+	public void SetSinglePlayer()
 	{
 		m_IsSingleplayer = true;
-		_InitGame();
 	}
 
-	public void PlayDuel()
+	public void SetDuel()
 	{
 		m_IsSingleplayer = false;
-		_InitGame();
 	}
 
 	public void Clear()
@@ -69,17 +77,43 @@ public class BoardView : MonoBehaviour
 		m_PieceToView.Clear();
 		m_SelectedPiece = null;
 		m_IsBottomPlayerTurn = true;
+		m_DoOverrideFirstPlayer = false;
 		m_IsEnded = false;
 		m_HUD.gameObject.SetActive(false);
 
 		ClearInteractableCells();
 	}
 
-	private void _InitGame()
+	public void StartGame()
 	{
+		m_GameModel.DispatchPieces();
+	}
+
+	public void StartGame(string iBoardCode)
+	{
+		m_GameModel.DispatchPieces(iBoardCode);
+	}
+
+	public void SetupTimer(float iInitialTime, float iTimeIncrement)
+	{
+		m_InitialTime = iInitialTime;
+		m_TimeIncrement = iTimeIncrement;
+	}
+
+	public void SetFirstPlayer(bool iIsPlayer1)
+	{
+		m_DoOverrideFirstPlayer = true;
+		m_IsFirstPlayerBottom = iIsPlayer1;
+	}
+
+	private void _OnInit()
+	{
+		if(m_DoOverrideFirstPlayer)
+			m_GameModel.SetCurrentPlayer(m_IsFirstPlayerBottom ? PlayerOwnership.BOTTOM : PlayerOwnership.TOP);
+
 		Clear();
 
-		m_GameModel.DispatchPieces();
+		m_IsBottomPlayerTurn = (m_GameModel.GetCurrentPlayer() == PlayerOwnership.BOTTOM);
 
 		for(int cellIdx = 0; cellIdx < 12; cellIdx++)
 			_InitPiece(m_GameModel.GetCell(cellIdx), m_CellsViews[cellIdx].transform);
@@ -90,6 +124,8 @@ public class BoardView : MonoBehaviour
 			_InitPiece(topHandPiece, m_TopHand);
 
 		m_HUD.gameObject.SetActive(true);
+		m_Timer.Init(m_InitialTime, m_TimeIncrement, m_IsBottomPlayerTurn);
+		_UpdateHUD();
 	}
 
 	private void _InitPiece(Piece iPiece, Transform iParent)
@@ -106,14 +142,19 @@ public class BoardView : MonoBehaviour
 
 	private void _OnMovement()
 	{
+		if(m_IsEnded)
+			return;
 		m_IsBottomPlayerTurn = !m_IsBottomPlayerTurn;
+		m_Timer.Switch();
 		_UpdateBoardView();
 	}
 
 	private void _OnEnd(int iEndCode)
 	{
 		m_IsEnded = true;
-		m_HUD.gameObject.SetActive(false);
+		m_PiecesGroup.SetAllTogglesOff();
+		_UpdateBoardView();
+		m_Timer.Pause();
 		switch(iEndCode)
 		{
 			case 0:
@@ -124,19 +165,22 @@ public class BoardView : MonoBehaviour
 					m_EndMenu.ShowEndMenu("You win!");
 				else
 					m_EndMenu.ShowEndMenu("Player 1 wins.");
-				m_IsBottomPlayerTurn = true;
 				break;
 			case 2:
 				if(m_IsSingleplayer)
 					m_EndMenu.ShowEndMenu("You lost.");
 				else
 					m_EndMenu.ShowEndMenu("Player 2 wins.");
-				m_IsBottomPlayerTurn = true;
 				break;
 			default:
 				Debug.LogError("Unsupported end game code");
 				break;
 		}
+	}
+
+	private void _OnTimerEnded()
+	{
+		_OnEnd(m_GameModel.GetCurrentPlayer() == PlayerOwnership.BOTTOM ? 2 : 1);
 	}
 
 	private void _UpdateBoardView()
@@ -150,6 +194,14 @@ public class BoardView : MonoBehaviour
 		foreach(Piece piece in m_GameModel.GetTopHand())
 			_UpdatePieceView(piece, m_TopHand);
 
+		/*if(!m_IsSinglePlayer && !m_IsEnded)
+			gameObject.transform.rotation = m_IsBottomPlayerTurn ? Quaternion.identity : Quaternion.Euler(0, 0, 180);*/
+
+		_UpdateHUD();
+	}
+
+	private void _UpdateHUD()
+	{
 		if(m_IsSingleplayer)
 		{
 			m_HUD.SetText(m_IsBottomPlayerTurn ? "Your turn" : "AI's turn");
@@ -157,9 +209,6 @@ public class BoardView : MonoBehaviour
 		}
 
 		m_HUD.SetText($"Player {(m_IsBottomPlayerTurn ? 1 : 2)}'s turn");
-
-		if(!m_IsEnded)
-			gameObject.transform.rotation = m_IsBottomPlayerTurn ? Quaternion.identity : Quaternion.Euler(0, 0, 180);
 	}
 
 	private void _UpdatePieceView(Piece iPiece, Transform iParent)

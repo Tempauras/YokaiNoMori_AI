@@ -1,8 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using Unity.Mathematics;
-using Unity.VisualScripting;
 using UnityEngine;
 
 public enum DecodeState
@@ -34,7 +32,7 @@ public class Game : MonoBehaviour
 	public event Action<int> OnEnd; // 0: draw ; 1: bottom win ; 2: top win
 
 	private bool _isBottomWinningNextTurn = false;
-	private bool _isTopWinningNextTurn = true;
+	private bool _isTopWinningNextTurn = false;
 
 	void Start()
 	{
@@ -59,6 +57,12 @@ public class Game : MonoBehaviour
 					if(state == DecodeState.PLAYERTURN)
 					{
 						_currentPlayerTurn = PlayerOwnership.TOP;
+					}
+					break;
+				case '?':
+					if(state == DecodeState.PLAYERTURN)
+					{
+						_currentPlayerTurn = UnityEngine.Random.Range(0, 2) == 0 ? PlayerOwnership.BOTTOM : PlayerOwnership.TOP;
 					}
 					break;
 				case 'b':
@@ -220,10 +224,15 @@ public class Game : MonoBehaviour
 		}
 	}
 
+	public void DispatchPieces(string BoardStateString)
+	{
+		DecodeBoardStateString(BoardStateString);
+		OnInit?.Invoke();
+	}
+
 	public void DispatchPieces()
 	{
-		DecodeBoardStateString(GameStartingString);
-		OnInit?.Invoke();
+		DispatchPieces(GameStartingString);
 	}
 
 	public bool MovePieces(Piece pieceMoving, int PositionToMoveTo)
@@ -233,14 +242,14 @@ public class Game : MonoBehaviour
 		{
 			if(_isTopWinningNextTurn)
 			{
-				OnEnd.Invoke(2);
+				OnEnd?.Invoke(2);
 			}
 		}
 		else
 		{
 			if(_isBottomWinningNextTurn)
 			{
-				OnEnd.Invoke(1);
+				OnEnd?.Invoke(1);
 			}
 		}
 		if(ownerOfPiece != _currentPlayerTurn)
@@ -262,7 +271,7 @@ public class Game : MonoBehaviour
 			}
 			if(!allowedEnemyMove.Contains(PositionToMoveTo))
 			{
-				OnEnd.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
+				OnEnd?.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
 			}
 			else
 			{
@@ -290,7 +299,7 @@ public class Game : MonoBehaviour
 		{
 			if(_gameBoard[PositionToMoveTo].GetPieceSO().pieceType == PieceType.KOROPOKKURU)
 			{
-				OnEnd.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
+				OnEnd?.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
 			}
 			if(ownerOfPiece == PlayerOwnership.TOP)
 			{
@@ -406,6 +415,11 @@ public class Game : MonoBehaviour
 	public PlayerOwnership GetCurrentPlayer()
 	{
 		return _currentPlayerTurn;
+	}
+
+	public void SetCurrentPlayer(PlayerOwnership CurrentPlayer)
+	{
+		_currentPlayerTurn = CurrentPlayer;
 	}
 
 	private void ChangeTurn()
