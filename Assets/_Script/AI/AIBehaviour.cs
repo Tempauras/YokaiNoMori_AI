@@ -10,27 +10,18 @@ namespace YokaiNoMori.Coffee
 	{
 		private const string s_Name = "YoshihAIruHabu";
 
-		private PieceSO m_KitsunePiece;
-		private PieceSO m_KoropokkuruPiece;
-		private PieceSO m_KodamaPiece;
-		private PieceSO m_KodamaSamuraiPiece;
-		private PieceSO m_TanukiPiece;
-
+		private Game m_RealGame;
 		private Game m_GameModel;
 
 		private ECampType m_Camp = ECampType.NONE;
+		private PlayerOwnership m_PlayerOwnership;
 
-		public AIBehaviour(PieceSO iKitsunePiece, PieceSO iKoropokkuruPiece, PieceSO iKodamaPiece, PieceSO iKodamaSamuraiPiece, PieceSO iTanukiPiece)
+		public AIBehaviour()
 		{
-			m_KitsunePiece = iKitsunePiece;
-			m_KoropokkuruPiece = iKoropokkuruPiece;
-			m_KodamaPiece = iKodamaPiece;
-			m_KodamaSamuraiPiece = iKodamaSamuraiPiece;
-			m_TanukiPiece = iTanukiPiece;
 		}
 
 		#region Competitor functions
-		/*public ECampType GetCamp()
+		public ECampType GetCamp()
 		{
 			return m_Camp;
 		}
@@ -47,21 +38,68 @@ namespace YokaiNoMori.Coffee
 
 		public void StartTurn()
 		{
-			throw new System.NotImplementedException();
+			MoveRandom();
 		}
 
 		public void StopTurn()
 		{
-			throw new System.NotImplementedException();
-		}*/
+		}
 		#endregion Competitor functions
 
 		public void SetCamp(PlayerOwnership iPlayerOwnership)
 		{
-			m_Camp = (iPlayerOwnership == PlayerOwnership.BOTTOM) ? ECampType.PLAYER_ONE : ECampType.PLAYER_TWO;
+			m_PlayerOwnership = iPlayerOwnership;
 		}
 
+		public void Init(Game iGame)
+		{
+			m_RealGame = iGame;
+		}
 
+		private void MoveRandom()
+		{
+			List<KeyValuePair<Piece, int>> moves = GetAllMoves();
+			Move(moves[Random.Range(0, moves.Count)]);
+		}
+
+		private float Evaluate()
+		{
+			return 0;
+		}
+
+		private List<KeyValuePair<Piece, int>> GetAllMoves()
+		{
+			List<KeyValuePair<Piece, int>> moves = new List<KeyValuePair<Piece, int>>();
+			for(int cellIdx = 0; cellIdx < 12; cellIdx++)
+			{
+				Piece piece = m_RealGame.GetCell(cellIdx);
+				if(piece == null || piece.GetPlayerOwnership() != m_PlayerOwnership)
+					continue;
+				moves.AddRange(GetAllMovesForPiece(piece));
+			}
+			foreach(Piece piece in (m_PlayerOwnership == PlayerOwnership.BOTTOM ? m_RealGame.GetBottomHand() : m_RealGame.GetTopHand()))
+				moves.AddRange(GetAllMovesForPiece(piece));
+
+			return moves;
+		}
+
+		private List<KeyValuePair<Piece, int>> GetAllMovesForPiece(Piece iPiece)
+		{
+			List<KeyValuePair<Piece, int>> moves = new List<KeyValuePair<Piece, int>>();
+			foreach(int pos in m_RealGame.AllowedMove(iPiece))
+				moves.Add(KeyValuePair.Create(iPiece, pos));
+			return moves;
+		}
+
+		private void Move(KeyValuePair<Piece, int> iMove)
+		{
+			Move(iMove.Key, iMove.Value);
+		}
+
+		private void Move(Piece iPiece, int iPos)
+		{
+			m_RealGame.MovePieces(iPiece, iPos);
+		}
 
 		// read game
 		// compute best move

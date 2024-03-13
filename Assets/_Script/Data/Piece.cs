@@ -8,30 +8,31 @@ public enum PlayerOwnership
 
 public class Piece
 {
-	private PieceSO _pieceType;
+	private PieceData _pieceType;
 	private PlayerOwnership _playerOwnership;
 
-	public Piece(PieceSO pieceType, PlayerOwnership playerOwnership)
+	public Piece(PieceData pieceType, PlayerOwnership playerOwnership)
 	{
 		_pieceType = pieceType;
 		_playerOwnership = playerOwnership;
 	}
 
-	public Piece()
-	{
-		_pieceType = null;
-	}
-
-	public PieceSO GetPieceSO()
+	public PieceData GetPieceData()
 	{
 		return _pieceType;
 	}
+
+	public PieceType GetPieceType()
+	{
+		return _pieceType.pieceType;
+	}
+
 	public PlayerOwnership GetPlayerOwnership()
 	{
 		return _playerOwnership;
 	}
 
-	public void SetPieceSO(PieceSO newPieceType)
+	public void SetPieceType(PieceData newPieceType)
 	{
 		_pieceType = newPieceType;
 	}

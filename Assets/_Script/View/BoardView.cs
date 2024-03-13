@@ -2,15 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using YokaiNoMori.Coffee;
 
 public class BoardView : MonoBehaviour
 {
-	[SerializeField] private PieceSO m_KitsunePiece;
-	[SerializeField] private PieceSO m_KoropokkuruPiece;
-	[SerializeField] private PieceSO m_KodamaPiece;
-	[SerializeField] private PieceSO m_KodamaSamuraiPiece;
-	[SerializeField] private PieceSO m_TanukiPiece;
-
 	[SerializeField] private GameTimer m_Timer;
 	[SerializeField] private Transform m_CellsContainer;
 	[SerializeField] private Transform m_BottomHand;
@@ -22,6 +17,7 @@ public class BoardView : MonoBehaviour
 
 	[SerializeField] private EndMenuBehaviour m_EndMenu;
 
+	private AIBehaviour m_AI;
 	private Game m_GameModel;
 
 	private List<CellView> m_CellsViews = new List<CellView>();
@@ -60,12 +56,16 @@ public class BoardView : MonoBehaviour
 			cellIdx++;
 		}
 
-		m_GameModel = new Game(m_KitsunePiece, m_KoropokkuruPiece, m_KodamaPiece, m_KodamaSamuraiPiece, m_TanukiPiece);
+		m_GameModel = new Game();
 		m_GameModel.OnInit += _OnInit;
 		m_GameModel.OnMovement += _OnMovement;
 		m_GameModel.OnEnd += _OnEnd;
 
 		m_Timer.OnEnd += _OnTimerEnded;
+
+		m_AI = new AIBehaviour();
+		m_AI.Init(m_GameModel);
+		m_AI.SetCamp(PlayerOwnership.TOP);
 	}
 
 	public void SetSinglePlayer()
@@ -150,6 +150,8 @@ public class BoardView : MonoBehaviour
 		m_HUD.gameObject.SetActive(true);
 		m_Timer.Init(m_InitialTime, m_TimeIncrement, m_IsBottomPlayerTurn);
 		_UpdateHUD();
+
+		PlayAI_IfNeeded();
 	}
 
 	private void _InitPiece(Piece iPiece, Transform iParent)
@@ -171,6 +173,8 @@ public class BoardView : MonoBehaviour
 		m_IsBottomPlayerTurn = !m_IsBottomPlayerTurn;
 		m_Timer.Switch();
 		_UpdateBoardView();
+
+		PlayAI_IfNeeded();
 	}
 
 	private void _OnEnd(int iEndCode)
@@ -286,5 +290,23 @@ public class BoardView : MonoBehaviour
 	public void MoveTo(int iCellIdx)
 	{
 		m_GameModel.MovePieces(m_SelectedPiece, iCellIdx);
+	}
+
+	public void PlayAI_IfNeeded()
+	{
+		if(m_IsSingleplayer && !m_IsBottomPlayerTurn)
+			PlayAI();
+	}
+
+	private void PlayAI()
+	{
+		StartCoroutine(_DelayPlayAI());
+	}
+
+	private IEnumerator _DelayPlayAI()
+	{
+		yield return new WaitForEndOfFrame();
+		yield return new WaitForSeconds(1);
+		m_AI.StartTurn();
 	}
 }

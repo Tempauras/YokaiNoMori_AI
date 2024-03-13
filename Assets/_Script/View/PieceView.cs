@@ -43,7 +43,7 @@ public class PieceView : MonoBehaviour
 
 		m_Image.enabled = true;
 
-		PieceType pieceType = m_PieceModel.GetPieceSO().pieceType;
+		PieceType pieceType = m_PieceModel.GetPieceData().pieceType;
 		m_Image.sprite = m_PiecesSprites.Assets.Find(x => x.Piece == pieceType).Sprite;
 		transform.localRotation = m_PieceModel.GetPlayerOwnership() == PlayerOwnership.BOTTOM ? Quaternion.identity : Quaternion.Euler(0, 0, 180);
 	}
