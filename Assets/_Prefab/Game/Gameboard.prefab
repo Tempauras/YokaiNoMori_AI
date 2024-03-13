@@ -205,7 +205,6 @@ GameObject:
   m_Component:
   - component: {fileID: 5125002101640911078}
   - component: {fileID: 7560249977939643205}
-  - component: {fileID: 4365587495601730317}
   - component: {fileID: 5834440007550061905}
   - component: {fileID: 4138595458570651935}
   m_Layer: 5
@@ -250,7 +249,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 09664d143940a994caf51adabb619afe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_GameModel: {fileID: 4365587495601730317}
+  m_KitsunePiece: {fileID: 11400000, guid: 862ab01961651904c877d4332273f117, type: 2}
+  m_KoropokkuruPiece: {fileID: 11400000, guid: 0355e7b67676cb54593a0839b1c7ab5b, type: 2}
+  m_KodamaPiece: {fileID: 11400000, guid: e7216c6ad6c63904b9f66be401105bab, type: 2}
+  m_KodamaSamuraiPiece: {fileID: 11400000, guid: bc5d0fe2adce43044a71010074334e0d, type: 2}
+  m_TanukiPiece: {fileID: 11400000, guid: f111e4817736ba34b8f94615a94f9004, type: 2}
   m_Timer: {fileID: 4138595458570651935}
   m_CellsContainer: {fileID: 8570689857173732860}
   m_BottomHand: {fileID: 2363320514226163038}
@@ -259,24 +262,6 @@ MonoBehaviour:
   m_PiecePrefab: {fileID: 3651133507638214479, guid: 9f61296209ecef047b7093b1dd6d46b4, type: 3}
   m_PiecesGroup: {fileID: 5834440007550061905}
   m_EndMenu: {fileID: 0}
---- !u!114 &4365587495601730317
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2134459763218196885}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0c0760481e70f4542b0e9e5ec37ef4d1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  KitsunePiece: {fileID: 11400000, guid: 862ab01961651904c877d4332273f117, type: 2}
-  KoropokkuruPiece: {fileID: 11400000, guid: 0355e7b67676cb54593a0839b1c7ab5b, type: 2}
-  KodamaPiece: {fileID: 11400000, guid: e7216c6ad6c63904b9f66be401105bab, type: 2}
-  KodamaSamuraiPiece: {fileID: 11400000, guid: bc5d0fe2adce43044a71010074334e0d, type: 2}
-  TanukiPiece: {fileID: 11400000, guid: f111e4817736ba34b8f94615a94f9004, type: 2}
-  GameStartingString: bkr/1p1/1P1/RKB b
 --- !u!114 &5834440007550061905
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -5,7 +5,12 @@ using UnityEngine.UI;
 
 public class BoardView : MonoBehaviour
 {
-	[SerializeField] private Game m_GameModel;
+	[SerializeField] private PieceSO m_KitsunePiece;
+	[SerializeField] private PieceSO m_KoropokkuruPiece;
+	[SerializeField] private PieceSO m_KodamaPiece;
+	[SerializeField] private PieceSO m_KodamaSamuraiPiece;
+	[SerializeField] private PieceSO m_TanukiPiece;
+
 	[SerializeField] private GameTimer m_Timer;
 	[SerializeField] private Transform m_CellsContainer;
 	[SerializeField] private Transform m_BottomHand;
@@ -16,6 +21,8 @@ public class BoardView : MonoBehaviour
 	[SerializeField] private ToggleGroup m_PiecesGroup;
 
 	[SerializeField] private EndMenuBehaviour m_EndMenu;
+
+	private Game m_GameModel;
 
 	private List<CellView> m_CellsViews = new List<CellView>();
 	private List<PieceView> m_PiecesViews = new List<PieceView>();
@@ -53,6 +60,7 @@ public class BoardView : MonoBehaviour
 			cellIdx++;
 		}
 
+		m_GameModel = new Game(m_KitsunePiece, m_KoropokkuruPiece, m_KodamaPiece, m_KodamaSamuraiPiece, m_TanukiPiece);
 		m_GameModel.OnInit += _OnInit;
 		m_GameModel.OnMovement += _OnMovement;
 		m_GameModel.OnEnd += _OnEnd;
@@ -167,6 +175,11 @@ public class BoardView : MonoBehaviour
 
 	private void _OnEnd(int iEndCode)
 	{
+		if(m_IsEnded)
+		{
+			Debug.LogWarning("Ended twice");
+			return;
+		}
 		m_IsEnded = true;
 		m_PiecesGroup.SetAllTogglesOff();
 		_UpdateBoardView();
