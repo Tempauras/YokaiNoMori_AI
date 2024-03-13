@@ -56,6 +56,8 @@ public class BoardView : MonoBehaviour
 			cellIdx++;
 		}
 
+		m_HUD.InitHUD(this);
+
 		m_GameModel = new Game();
 		m_GameModel.OnInit += _OnInit;
 		m_GameModel.OnMovement += _OnMovement;
@@ -290,6 +292,13 @@ public class BoardView : MonoBehaviour
 	public void MoveTo(int iCellIdx)
 	{
 		m_GameModel.MovePieces(m_SelectedPiece, iCellIdx);
+	}
+
+	public void Rewind()
+	{
+		// ARTHUUUUUUUUUUUR
+		// TODOOOOOOOOOOOOOOOOOOOOOOOO
+		_OnMovement();
 	}
 
 	public void PlayAI_IfNeeded()

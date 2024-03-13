@@ -12,7 +12,6 @@ public enum DecodeState
 	END,
 }
 
-
 public struct MoveData
 {
 	public Piece piece;
@@ -119,7 +118,7 @@ public class Game
 	private bool _isTopWinningNextTurn = false;
 
 	private List<MoveData> _movesData = new List<MoveData>();
-	private int _nbRepeatedMoves = 2;
+	private int _nbRepeatedMoves = 0;
 
 	public Game()
 	{
@@ -333,7 +332,7 @@ public class Game
 	{
 		DecodeBoardStateString(BoardStateString);
 		_movesData.Clear();
-		_nbRepeatedMoves = 2;
+		_nbRepeatedMoves = 0;
 		OnInit?.Invoke();
 	}
 
@@ -477,9 +476,12 @@ public class Game
 	{
 		_movesData.Add(move);
 
-		if(_movesData.Count <= 4)
+		if(_movesData.Count < 3)
 			return;
-		if(_movesData[_movesData.Count - 1].Equals(_movesData[_movesData.Count - 5]))
+
+		MoveData lastMove = _movesData[_movesData.Count - 1];
+		MoveData prevMove = _movesData[_movesData.Count - 3];
+		if(lastMove.piece == prevMove.piece && lastMove.endPos == prevMove.startPos)
 			_nbRepeatedMoves++;
 		else
 			_nbRepeatedMoves = 0;
