@@ -172,7 +172,9 @@ public class BoardView : MonoBehaviour
 	{
 		if(m_IsEnded)
 			return;
-		m_IsBottomPlayerTurn = !m_IsBottomPlayerTurn;
+
+		m_IsBottomPlayerTurn = m_GameModel.GetCurrentPlayer() == PlayerOwnership.BOTTOM;
+
 		m_Timer.Switch();
 		_UpdateBoardView();
 
@@ -296,9 +298,7 @@ public class BoardView : MonoBehaviour
 
 	public void Rewind()
 	{
-		// ARTHUUUUUUUUUUUR
-		// TODOOOOOOOOOOOOOOOOOOOOOOOO
-		_OnMovement();
+		m_GameModel.Rewind();
 	}
 
 	public void PlayAI_IfNeeded()
