@@ -12,6 +12,30 @@ public enum DecodeState
 	END,
 }
 
+public struct MoveData
+{
+	Piece piece;
+	int startPos;
+	int endPos;
+	Piece? pieceEaten;
+
+	public MoveData(Piece piece, int StartPos, int EndPos)
+	{
+		this.piece = piece;
+		this.startPos = StartPos;
+		this.endPos = EndPos;
+		this.pieceEaten = null;
+	}
+
+	public MoveData(Piece piece, int StartPos, int EndPos, Piece pieceEaten)
+	{
+        this.piece = piece;
+        this.startPos = StartPos;
+        this.endPos = EndPos;
+        this.pieceEaten = pieceEaten;
+    }
+}
+
 public class Game
 {
 	private PieceSO _kitsunePiece;
@@ -33,6 +57,8 @@ public class Game
 
 	private bool _isBottomWinningNextTurn = false;
 	private bool _isTopWinningNextTurn = false;
+
+	private List<MoveData> _movesData = new List<MoveData>();
 
 	private List<KeyValuePair<Piece, int>> _moves = new List<KeyValuePair<Piece, int>>();
 	private int _nbRepeatedMoves = 2;
@@ -263,7 +289,7 @@ public class Game
 			return false;
 
 		int indexOfMovingPiece = Array.IndexOf(_gameBoard, pieceMoving);
-		if(indexOfMovingPiece == -1)
+        if (indexOfMovingPiece == -1)
 			return ParachutePiece(pieceMoving, PositionToMoveTo);
 
 		if(!pieceMoving.GetNeighbour(indexOfMovingPiece).Contains(PositionToMoveTo))
@@ -272,8 +298,8 @@ public class Game
 			return false;
 		}
 
-		Piece prevPiece = _gameBoard[PositionToMoveTo];
-		_gameBoard[indexOfMovingPiece] = null;
+        Piece prevPiece = _gameBoard[PositionToMoveTo];
+        _gameBoard[indexOfMovingPiece] = null;
 		_gameBoard[PositionToMoveTo] = pieceMoving;
 
 		// pawn promotion
@@ -341,8 +367,7 @@ public class Game
 			else
 				_isBottomWinningNextTurn = true;
 		}
-
-		RecordMove(pieceMoving, PositionToMoveTo);
+		RecordMove(pieceMoving, indexOfMovingPiece, PositionToMoveTo, prevPiece);
 		OnMovement?.Invoke();
 		ChangeTurn();
 		return true;
@@ -373,30 +398,29 @@ public class Game
 		_gameBoard[PositionToParachuteTo] = pieceParachuting;
 		playerHand.Remove(pieceParachuting);
 
-		RecordMove(pieceParachuting, PositionToParachuteTo);
-		OnMovement?.Invoke();
+        RecordMove(pieceParachuting, -1, PositionToParachuteTo, null);
+        OnMovement?.Invoke();
 		ChangeTurn();
 		return true;
 	}
 
-	private void RecordMove(Piece piece, int Position)
+	private void RecordMove(Piece piece, int StartPos, int EndPos, Piece pieceEaten)
 	{
-		RecordMove(KeyValuePair.Create(piece, Position));
+		RecordMove(new MoveData(piece, StartPos, EndPos, pieceEaten));
 	}
 
-	private void RecordMove(KeyValuePair<Piece, int> move)
+	private void RecordMove(MoveData move)
 	{
-		_moves.Add(move);
+		_movesData.Add(move);
 
-		if(_moves.Count <= 4)
+		if (_movesData.Count <= 4)
 			return;
-
-		if(_moves[_moves.Count - 1].Equals(_moves[_moves.Count - 5]))
+		if (_movesData[_movesData.Count - 1].Equals(_movesData[_movesData.Count - 5]))
 			_nbRepeatedMoves++;
 		else
 			_nbRepeatedMoves = 0;
 
-		if(_nbRepeatedMoves >= 10)
+		if (_nbRepeatedMoves >= 10)
 			OnEnd?.Invoke(0);
 	}
 
