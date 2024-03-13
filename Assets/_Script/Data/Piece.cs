@@ -16,6 +16,11 @@ public class Piece
 		_pieceType = pieceType;
 		_playerOwnership = playerOwnership;
 	}
+	public Piece(Piece iCopy)
+	{
+		_pieceType = iCopy._pieceType;
+		_playerOwnership = iCopy._playerOwnership;
+	}
 
 	public PieceData GetPieceData()
 	{

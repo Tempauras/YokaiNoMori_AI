@@ -12,12 +12,13 @@ public enum DecodeState
 	END,
 }
 
+
 public struct MoveData
 {
-	Piece piece;
-	int startPos;
-	int endPos;
-	Piece? pieceEaten;
+	public Piece piece;
+	public int startPos;
+	public int endPos;
+	public Piece pieceEaten;
 
 	public MoveData(Piece piece, int StartPos, int EndPos)
 	{
@@ -29,11 +30,76 @@ public struct MoveData
 
 	public MoveData(Piece piece, int StartPos, int EndPos, Piece pieceEaten)
 	{
-        this.piece = piece;
-        this.startPos = StartPos;
-        this.endPos = EndPos;
-        this.pieceEaten = pieceEaten;
-    }
+		this.piece = piece;
+		this.startPos = StartPos;
+		this.endPos = EndPos;
+		this.pieceEaten = pieceEaten;
+	}
+}
+
+public class ClonePieceEnumerator : IEnumerator<Piece>
+{
+	private IEnumerator<Piece> m_PieceEnumerator;
+	private Piece m_Current = null;
+
+	public Piece Current => m_Current;
+
+	object IEnumerator.Current => m_Current;
+
+	public ClonePieceEnumerator(IEnumerator<Piece> iPieceEnumerator)
+	{
+		m_PieceEnumerator = iPieceEnumerator;
+		_Clone();
+	}
+
+	private void _Clone()
+	{
+		if(m_PieceEnumerator != null)
+			m_Current = new Piece(m_PieceEnumerator.Current.GetPieceData(), m_PieceEnumerator.Current.GetPlayerOwnership());
+		else
+			m_Current = null;
+	}
+
+	public void Dispose()
+	{
+		m_PieceEnumerator.Dispose();
+	}
+
+	public bool MoveNext()
+	{
+		bool res = m_PieceEnumerator.MoveNext();
+		if(!res)
+			_Clone();
+		return res;
+	}
+
+	public void Reset()
+	{
+		m_PieceEnumerator.Reset();
+		_Clone();
+	}
+}
+
+public class ClonePieceEnumerable : IEnumerable<Piece>
+{
+	private IEnumerable<Piece> m_Pieces;
+	private ClonePieceEnumerator m_PieceEnumerator;
+
+	public ClonePieceEnumerable(IEnumerable<Piece> iPieces)
+	{
+		m_Pieces = iPieces;
+		m_PieceEnumerator = new ClonePieceEnumerator(m_Pieces.GetEnumerator());
+	}
+
+	public IEnumerator<Piece> GetEnumerator()
+	{
+		return m_PieceEnumerator;
+	}
+
+	IEnumerator IEnumerable.GetEnumerator()
+	{
+		return GetEnumerator();
+	}
 }
 
 public class Game
@@ -53,8 +119,6 @@ public class Game
 	private bool _isTopWinningNextTurn = false;
 
 	private List<MoveData> _movesData = new List<MoveData>();
-
-	private List<KeyValuePair<Piece, int>> _moves = new List<KeyValuePair<Piece, int>>();
 	private int _nbRepeatedMoves = 2;
 
 	public Game()
@@ -64,14 +128,28 @@ public class Game
 	public Game(Game copy)
 	{
 		// #TODO: clone piece instances
-		Array.Copy(copy._gameBoard, _gameBoard, 12);
-		_handPiecesTopPlayer = new List<Piece>(copy._handPiecesTopPlayer);
-		_handPiecesBottomPlayer = new List<Piece>(copy._handPiecesBottomPlayer);
+		_gameBoard = new List<Piece>(new ClonePieceEnumerable(copy._gameBoard)).ToArray();
+		_handPiecesTopPlayer = new List<Piece>(new ClonePieceEnumerable(copy._handPiecesTopPlayer));
+		_handPiecesBottomPlayer = new List<Piece>(new ClonePieceEnumerable(copy._handPiecesBottomPlayer));
 		_currentPlayerTurn = copy._currentPlayerTurn;
 		_isBottomWinningNextTurn = copy._isBottomWinningNextTurn;
 		_isTopWinningNextTurn = copy._isTopWinningNextTurn;
-		_moves = new List<KeyValuePair<Piece, int>>(copy._moves);
 		_nbRepeatedMoves = copy._nbRepeatedMoves;
+
+		// cloning move data
+		Dictionary<Piece, Piece> toNewPiece = new Dictionary<Piece, Piece>();
+		foreach((Piece newPiece, Piece oldPiece) in Enumerable.Zip(_gameBoard, copy._gameBoard, Tuple.Create))
+			toNewPiece.Add(oldPiece, newPiece);
+		foreach((Piece newPiece, Piece oldPiece) in Enumerable.Zip(_handPiecesTopPlayer, copy._handPiecesTopPlayer, Tuple.Create))
+			toNewPiece.Add(oldPiece, newPiece);
+		foreach((Piece newPiece, Piece oldPiece) in Enumerable.Zip(_handPiecesBottomPlayer, copy._handPiecesBottomPlayer, Tuple.Create))
+			toNewPiece.Add(oldPiece, newPiece);
+
+		foreach(MoveData moveData in copy._movesData)
+		{
+			_movesData.Add(new MoveData(
+				toNewPiece[moveData.piece], moveData.startPos, moveData.endPos, toNewPiece.GetValueOrDefault(moveData.pieceEaten, null)));
+		}
 	}
 
 	public void DecodeBoardStateString(string BoardStateString)
@@ -254,7 +332,7 @@ public class Game
 	public void DispatchPieces(string BoardStateString)
 	{
 		DecodeBoardStateString(BoardStateString);
-		_moves.Clear();
+		_movesData.Clear();
 		_nbRepeatedMoves = 2;
 		OnInit?.Invoke();
 	}
@@ -275,7 +353,7 @@ public class Game
 			return false;
 
 		int indexOfMovingPiece = Array.IndexOf(_gameBoard, pieceMoving);
-        if (indexOfMovingPiece == -1)
+		if(indexOfMovingPiece == -1)
 			return ParachutePiece(pieceMoving, PositionToMoveTo);
 
 		if(!pieceMoving.GetNeighbour(indexOfMovingPiece).Contains(PositionToMoveTo))
@@ -284,8 +362,8 @@ public class Game
 			return false;
 		}
 
-        Piece prevPiece = _gameBoard[PositionToMoveTo];
-        _gameBoard[indexOfMovingPiece] = null;
+		Piece prevPiece = _gameBoard[PositionToMoveTo];
+		_gameBoard[indexOfMovingPiece] = null;
 		_gameBoard[PositionToMoveTo] = pieceMoving;
 
 		// pawn promotion
@@ -384,8 +462,8 @@ public class Game
 		_gameBoard[PositionToParachuteTo] = pieceParachuting;
 		playerHand.Remove(pieceParachuting);
 
-        RecordMove(pieceParachuting, -1, PositionToParachuteTo, null);
-        OnMovement?.Invoke();
+		RecordMove(pieceParachuting, -1, PositionToParachuteTo, null);
+		OnMovement?.Invoke();
 		ChangeTurn();
 		return true;
 	}
@@ -399,14 +477,14 @@ public class Game
 	{
 		_movesData.Add(move);
 
-		if (_movesData.Count <= 4)
+		if(_movesData.Count <= 4)
 			return;
-		if (_movesData[_movesData.Count - 1].Equals(_movesData[_movesData.Count - 5]))
+		if(_movesData[_movesData.Count - 1].Equals(_movesData[_movesData.Count - 5]))
 			_nbRepeatedMoves++;
 		else
 			_nbRepeatedMoves = 0;
 
-		if (_nbRepeatedMoves >= 10)
+		if(_nbRepeatedMoves >= 10)
 			OnEnd?.Invoke(0);
 	}
 
