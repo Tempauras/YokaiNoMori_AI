@@ -16,6 +16,7 @@ public class GameTimer : MonoBehaviour
 	private bool m_IsTime1Init = true;
 	private bool m_IsTime1 = true;
 	private bool m_IsRunning = false;
+	private bool m_IsPaused = false;
 
 	private float m_Increment = 0;
 
@@ -24,6 +25,7 @@ public class GameTimer : MonoBehaviour
 		m_TimeLeft1 = Math.Max(iInitialTime, 0);
 		m_TimeLeft2 = m_TimeLeft1;
 		m_IsRunning = false;
+		m_IsPaused = false;
 		m_Increment = iIncrement;
 		m_IsTime1 = iStartTimer1;
 		m_IsTime1Init = iStartTimer1;
@@ -49,12 +51,12 @@ public class GameTimer : MonoBehaviour
 
 	public void Pause()
 	{
-		m_IsRunning = false;
+		m_IsPaused = true;
 	}
 
 	public void Resume()
 	{
-		m_IsRunning = false;
+		m_IsPaused = false;
 	}
 
 	public void End()
@@ -68,7 +70,7 @@ public class GameTimer : MonoBehaviour
 
 	private void Update()
 	{
-		if(!m_IsRunning)
+		if(!m_IsRunning || m_IsPaused)
 			return;
 
 		if(m_IsTime1)

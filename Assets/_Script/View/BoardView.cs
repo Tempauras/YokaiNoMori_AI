@@ -24,6 +24,7 @@ public class BoardView : MonoBehaviour
 	private bool m_IsSingleplayer = true; // if false, local 2 player
 	private bool m_IsBottomPlayerTurn = true;
 	private bool m_IsEnded = false;
+	private bool m_IsPaused = false;
 
 	private Piece m_SelectedPiece = null;
 
@@ -79,6 +80,7 @@ public class BoardView : MonoBehaviour
 		m_IsBottomPlayerTurn = true;
 		m_DoOverrideFirstPlayer = false;
 		m_IsEnded = false;
+		m_IsPaused = false;
 		m_HUD.gameObject.SetActive(false);
 
 		ClearInteractableCells();
@@ -92,6 +94,20 @@ public class BoardView : MonoBehaviour
 	public void StartGame(string iBoardCode)
 	{
 		m_GameModel.DispatchPieces(iBoardCode);
+	}
+
+	public void SetPause(bool iPaused)
+	{
+		if(iPaused)
+		{
+			m_Timer.Pause();
+			m_PiecesGroup.SetAllTogglesOff();
+		}
+		else
+			m_Timer.Resume();
+
+		m_IsPaused = iPaused;
+		_UpdateBoardView();
 	}
 
 	public void SetupTimer(float iInitialTime, float iTimeIncrement)
@@ -220,7 +236,7 @@ public class BoardView : MonoBehaviour
 		pieceView.transform.SetParent(iParent, false);
 		pieceView.UpdateView();
 
-		if(m_IsEnded)
+		if(m_IsEnded || m_IsPaused)
 		{
 			pieceView.SetInteractable(false);
 			return;

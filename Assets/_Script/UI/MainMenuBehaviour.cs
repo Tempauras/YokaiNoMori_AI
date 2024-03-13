@@ -8,6 +8,11 @@ public class MainMenuBehaviour : MonoBehaviour
 	[SerializeField] private BoardView m_Game;
 	[SerializeField] private GameSettingsMenuBehaviour m_ConfigurationPanel;
 
+	private void Start()
+	{
+		ShowMainMenu();
+	}
+
 	public void ShowMainMenu()
 	{
 		m_Game.Clear();

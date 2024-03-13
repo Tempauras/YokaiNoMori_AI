@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public enum DecodeState
@@ -19,7 +20,7 @@ public class Game : MonoBehaviour
 	public PieceSO KodamaSamuraiPiece;
 	public PieceSO TanukiPiece;
 
-	public String GameStartingString;
+	public string GameStartingString;
 
 	private Piece[] _gameBoard = new Piece[12];
 	private List<Piece> _onGameBoardPieces = new List<Piece>();
@@ -34,14 +35,15 @@ public class Game : MonoBehaviour
 	private bool _isBottomWinningNextTurn = false;
 	private bool _isTopWinningNextTurn = false;
 
-	void Start()
-	{
-		DispatchPieces();
-	}
+	private List<KeyValuePair<Piece, int>> _moves = new List<KeyValuePair<Piece, int>>();
+	private int _nbRepeatedMoves = 2;
 
 	public void DecodeBoardStateString(string BoardStateString)
 	{
 		Array.Clear(_gameBoard, 0, _gameBoard.Length);
+		_onGameBoardPieces.Clear();
+		_handPiecesBottomPlayer.Clear();
+		_handPiecesTopPlayer.Clear();
 		_currentPlayerTurn = PlayerOwnership.BOTTOM;
 		_isBottomWinningNextTurn = false;
 		_isTopWinningNextTurn = false;
@@ -227,6 +229,8 @@ public class Game : MonoBehaviour
 	public void DispatchPieces(string BoardStateString)
 	{
 		DecodeBoardStateString(BoardStateString);
+		_moves.Clear();
+		_nbRepeatedMoves = 2;
 		OnInit?.Invoke();
 	}
 
@@ -237,27 +241,65 @@ public class Game : MonoBehaviour
 
 	public bool MovePieces(Piece pieceMoving, int PositionToMoveTo)
 	{
+		if(pieceMoving == null || pieceMoving.GetPieceSO() == null)
+			return false;
+
 		PlayerOwnership ownerOfPiece = pieceMoving.GetPlayerOwnership();
-		if(ownerOfPiece == PlayerOwnership.TOP && _isTopWinningNextTurn)
-		{
-			if(_isTopWinningNextTurn)
-			{
-				OnEnd?.Invoke(2);
-			}
-		}
-		else
-		{
-			if(_isBottomWinningNextTurn)
-			{
-				OnEnd?.Invoke(1);
-			}
-		}
+		PieceType pieceType = pieceMoving.GetPieceSO().pieceType;
 		if(ownerOfPiece != _currentPlayerTurn)
+			return false;
+
+		int indexOfMovingPiece = Array.IndexOf(_gameBoard, pieceMoving);
+		if(indexOfMovingPiece == -1)
+			return ParachutePiece(pieceMoving, PositionToMoveTo);
+
+		if(!pieceMoving.GetNeighbour(indexOfMovingPiece).Contains(PositionToMoveTo))
 		{
+			Debug.Log("[GameManager - MovePieces] Invalid movement, wtf happened");
 			return false;
 		}
-		if(pieceMoving.GetPieceSO().pieceType == PieceType.KOROPOKKURU &&
-			((pieceMoving.GetPlayerOwnership() == PlayerOwnership.TOP) ? (PositionToMoveTo <= 2) : (PositionToMoveTo >= 9)))
+
+		Piece prevPiece = _gameBoard[PositionToMoveTo];
+		_gameBoard[indexOfMovingPiece] = null;
+		_gameBoard[PositionToMoveTo] = pieceMoving;
+
+		// pawn promotion
+		if(pieceType == PieceType.KODAMA &&
+			((ownerOfPiece == PlayerOwnership.TOP) ? (PositionToMoveTo <= 2) : (PositionToMoveTo >= 9)))
+		{
+			pieceMoving.SetPieceSO(KodamaSamuraiPiece);
+		}
+
+		// managing piece that got taken if any
+		bool hasTakenKing = false;
+		if(prevPiece != null && prevPiece.GetPieceSO() != null)
+		{
+			PieceType prevPieceType = prevPiece.GetPieceSO().pieceType;
+			if(ownerOfPiece == PlayerOwnership.TOP)
+				_handPiecesTopPlayer.Add(prevPiece);
+			else
+				_handPiecesBottomPlayer.Add(prevPiece);
+			prevPiece.SetPlayerOwnership(ownerOfPiece);
+
+			if(prevPieceType == PieceType.KODAMA_SAMURAI)
+				prevPiece.SetPieceSO(KodamaPiece);
+
+			if(prevPieceType == PieceType.KOROPOKKURU)
+				OnEnd?.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
+		}
+
+		// opponent king had been placed on last row and we didn't capture him, lose
+		if(!hasTakenKing)
+		{
+			if(ownerOfPiece == PlayerOwnership.BOTTOM && _isTopWinningNextTurn)
+				OnEnd?.Invoke(2);
+			if(ownerOfPiece == PlayerOwnership.TOP && _isBottomWinningNextTurn)
+				OnEnd?.Invoke(1);
+		}
+
+		// managing win condition with king on last row
+		if(pieceType == PieceType.KOROPOKKURU &&
+			((ownerOfPiece == PlayerOwnership.TOP) ? (PositionToMoveTo <= 2) : (PositionToMoveTo >= 9)))
 		{
 			List<int> allowedEnemyMove = new List<int>();
 			foreach(Piece piece in _gameBoard)
@@ -265,64 +307,22 @@ public class Game : MonoBehaviour
 				if(piece == null)
 					continue;
 				if(piece.GetPlayerOwnership() != ownerOfPiece)
-				{
 					allowedEnemyMove.AddRange(AllowedMove(piece));
-				}
 			}
+
+			// can't get taken, win
 			if(!allowedEnemyMove.Contains(PositionToMoveTo))
-			{
 				OnEnd?.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
-			}
 			else
 			{
 				if(ownerOfPiece == PlayerOwnership.TOP)
-				{
 					_isTopWinningNextTurn = true;
-				}
 				else
-				{
 					_isBottomWinningNextTurn = true;
-				}
 			}
 		}
-		int indexOfMovingPiece = Array.IndexOf(_gameBoard, pieceMoving);
-		if(indexOfMovingPiece == -1)
-			return ParachutePiece(pieceMoving, PositionToMoveTo);
 
-		if(pieceMoving.GetNeighbour(indexOfMovingPiece).Count <= 0)
-		{
-			Debug.Log("[GameManager - MovePieces] No valid movement, wtf happened");
-			return false;
-		}
-
-		if(_gameBoard[PositionToMoveTo] != null && _gameBoard[PositionToMoveTo].GetPieceSO() != null)
-		{
-			if(_gameBoard[PositionToMoveTo].GetPieceSO().pieceType == PieceType.KOROPOKKURU)
-			{
-				OnEnd?.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
-			}
-			if(ownerOfPiece == PlayerOwnership.TOP)
-			{
-				_handPiecesTopPlayer.Add(_gameBoard[PositionToMoveTo]);
-			}
-			else
-			{
-				_handPiecesBottomPlayer.Add(_gameBoard[PositionToMoveTo]);
-			}
-			_gameBoard[PositionToMoveTo].SetPlayerOwnership(ownerOfPiece);
-			if(_gameBoard[PositionToMoveTo].GetPieceSO().pieceType == PieceType.KODAMA_SAMURAI)
-				_gameBoard[PositionToMoveTo].SetPieceSO(KodamaPiece);
-		}
-
-		_gameBoard[indexOfMovingPiece] = null;
-		_gameBoard[PositionToMoveTo] = pieceMoving;
-
-		if(pieceMoving.GetPieceSO().pieceType == PieceType.KODAMA &&
-			((ownerOfPiece == PlayerOwnership.TOP) ? (PositionToMoveTo <= 2) : (PositionToMoveTo >= 9)))
-		{
-			pieceMoving.SetPieceSO(KodamaSamuraiPiece);
-		}
-
+		RecordMove(pieceMoving, PositionToMoveTo);
 		OnMovement?.Invoke();
 		ChangeTurn();
 		return true;
@@ -332,38 +332,52 @@ public class Game : MonoBehaviour
 	{
 		PlayerOwnership ownerOfPiece = pieceParachuting.GetPlayerOwnership();
 		if(ownerOfPiece != _currentPlayerTurn)
-		{
 			return false;
-		}
+
 		//Check if the piece exists in its owner hand
-		if(ownerOfPiece == PlayerOwnership.TOP ? _handPiecesTopPlayer.Exists(x => x == pieceParachuting) : _handPiecesBottomPlayer.Exists(x => x == pieceParachuting))
-		{
-			//Check if the position is empty
-			if(_gameBoard[PositionToParachuteTo] == null || _gameBoard[PositionToParachuteTo].GetPieceSO() == null)
-			{
-				_gameBoard[PositionToParachuteTo] = pieceParachuting;
-				if(ownerOfPiece == PlayerOwnership.TOP)
-				{
-					_handPiecesTopPlayer.Remove(pieceParachuting);
-				}
-				else
-				{
-					_handPiecesBottomPlayer.Remove(pieceParachuting);
-				}
-				OnMovement?.Invoke();
-				ChangeTurn();
-				return true;
-			}
-			else
-			{
-				Debug.Log("[GameManager - ParachutePiece] Position is not empty.");
-			}
-		}
-		else
+		List<Piece> playerHand = (ownerOfPiece == PlayerOwnership.TOP ? _handPiecesTopPlayer : _handPiecesBottomPlayer);
+		bool pieceExistsInHand = playerHand.Exists(x => x == pieceParachuting);
+		if(!pieceExistsInHand)
 		{
 			Debug.Log("[GameManager - ParachutePiece] Piece does not exist in its owner hand, wtf happened");
+			return false;
 		}
-		return false;
+
+		//Check if the position is empty
+		if(_gameBoard[PositionToParachuteTo] != null && _gameBoard[PositionToParachuteTo].GetPieceSO() != null)
+		{
+			Debug.Log("[GameManager - ParachutePiece] Position is not empty.");
+			return false;
+		}
+
+		_gameBoard[PositionToParachuteTo] = pieceParachuting;
+		playerHand.Remove(pieceParachuting);
+
+		RecordMove(pieceParachuting, PositionToParachuteTo);
+		OnMovement?.Invoke();
+		ChangeTurn();
+		return true;
+	}
+
+	private void RecordMove(Piece piece, int Position)
+	{
+		RecordMove(KeyValuePair.Create(piece, Position));
+	}
+
+	private void RecordMove(KeyValuePair<Piece, int> move)
+	{
+		_moves.Add(move);
+
+		if(_moves.Count <= 4)
+			return;
+
+		if(_moves[_moves.Count - 1].Equals(_moves[_moves.Count - 5]))
+			_nbRepeatedMoves++;
+		else
+			_nbRepeatedMoves = 0;
+
+		if(_nbRepeatedMoves >= 10)
+			OnEnd.Invoke(0);
 	}
 
 	public List<int> AllowedMove(Piece piece)
