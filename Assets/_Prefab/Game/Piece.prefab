@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 8945914520630165041}
   - component: {fileID: 4545777901610526712}
   - component: {fileID: 8292926901521897393}
-  m_Layer: 5
+  m_Layer: 7
   m_Name: SelectedFade
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -59,7 +59,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_Material: {fileID: 0}
   m_Color: {r: 0.554717, g: 0.554717, b: 0.554717, a: 0.24705882}
-  m_RaycastTarget: 1
+  m_RaycastTarget: 0
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
@@ -89,7 +89,8 @@ GameObject:
   - component: {fileID: 6361518646466696729}
   - component: {fileID: 3651133507638214479}
   - component: {fileID: 1264401148909517466}
-  m_Layer: 5
+  - component: {fileID: 4653055540582097984}
+  m_Layer: 7
   m_Name: Piece
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -140,7 +141,7 @@ MonoBehaviour:
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
+  m_Maskable: 0
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -179,7 +180,7 @@ MonoBehaviour:
     m_HighlightedColor: {r: 0.9607843, g: 0.9607843, b: 0.9607843, a: 1}
     m_PressedColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 1}
     m_SelectedColor: {r: 1, g: 1, b: 1, a: 1}
-    m_DisabledColor: {r: 0.78431374, g: 0.78431374, b: 0.78431374, a: 0.5019608}
+    m_DisabledColor: {r: 1, g: 1, b: 1, a: 1}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.1
   m_SpriteState:
@@ -193,7 +194,7 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 1
+  m_Interactable: 0
   m_TargetGraphic: {fileID: 2845207448395600020}
   toggleTransition: 1
   graphic: {fileID: 8292926901521897393}
@@ -229,6 +230,7 @@ MonoBehaviour:
   m_Image: {fileID: 2845207448395600020}
   m_SelectPiece: {fileID: 6361518646466696729}
   m_PiecesSprites: {fileID: 11400000, guid: 04e972081a7c2254bb89b73c52db5a71, type: 2}
+  m_CellHalfSize: 90
 --- !u!114 &1264401148909517466
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -242,3 +244,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   m_Sound: {fileID: 8300000, guid: 4581bcdc13526aa4fa75deaa13fb2aa4, type: 3}
+--- !u!210 &4653055540582097984
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7903458178420098578}
+  m_Enabled: 1
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_SortAtRoot: 0

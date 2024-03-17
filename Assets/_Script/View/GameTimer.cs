@@ -13,8 +13,8 @@ public class GameTimer : MonoBehaviour
 
 	private float m_TimeLeft1 = 0; // in seconds
 	private float m_TimeLeft2 = 0; // in seconds
-	private bool m_IsTime1Init = true;
 	private bool m_IsTime1 = true;
+	private bool m_IsEnabled = true;
 	private bool m_IsRunning = false;
 	private bool m_IsPaused = false;
 
@@ -24,28 +24,23 @@ public class GameTimer : MonoBehaviour
 	{
 		m_TimeLeft1 = Math.Max(iInitialTime, 0);
 		m_TimeLeft2 = m_TimeLeft1;
-		m_IsRunning = false;
+		m_IsEnabled = (iInitialTime > 0);
+		m_IsRunning = true;
 		m_IsPaused = false;
 		m_Increment = iIncrement;
 		m_IsTime1 = iStartTimer1;
-		m_IsTime1Init = iStartTimer1;
 		UpdateDisplay();
 	}
 
 	public void Switch()
 	{
 		m_IsTime1 = !m_IsTime1;
-		if(!m_IsRunning)
-		{
-			if(m_IsTime1Init == m_IsTime1)
-				m_IsRunning = true;
-			return;
-		}
 
 		if(m_IsTime1)
 			m_TimeLeft2 += m_Increment;
 		else
 			m_TimeLeft1 += m_Increment;
+
 		UpdateDisplay();
 	}
 
@@ -70,7 +65,7 @@ public class GameTimer : MonoBehaviour
 
 	private void Update()
 	{
-		if(!m_IsRunning || m_IsPaused)
+		if(!m_IsEnabled || !m_IsRunning || m_IsPaused)
 			return;
 
 		if(m_IsTime1)
@@ -91,6 +86,9 @@ public class GameTimer : MonoBehaviour
 
 	private string _FormatTime(float iSeconds)
 	{
+		if(!m_IsEnabled)
+			return "\u221E";
+
 		TimeSpan span = TimeSpan.FromSeconds(iSeconds);
 		return span.ToString(@"m\:ss");
 	}

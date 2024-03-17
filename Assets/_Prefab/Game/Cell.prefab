@@ -12,10 +12,10 @@ GameObject:
   - component: {fileID: 7718945485354889056}
   - component: {fileID: 477618322913653704}
   - component: {fileID: 3330830307362294646}
-  - component: {fileID: 8799241290541237448}
+  - component: {fileID: 3342529933915302176}
   - component: {fileID: 6993465525504683403}
   - component: {fileID: 4538452040090485618}
-  m_Layer: 5
+  m_Layer: 6
   m_Name: Cell
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -53,7 +53,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 800b626c52381ac45b1f1f56078cde39, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_MoveButton: {fileID: 8799241290541237448}
+  m_MoveButton: {fileID: 3342529933915302176}
   m_ButtonView: {fileID: 3330830307362294646}
 --- !u!222 &477618322913653704
 CanvasRenderer:
@@ -93,7 +93,7 @@ MonoBehaviour:
   m_FillOrigin: 0
   m_UseSpriteMesh: 0
   m_PixelsPerUnitMultiplier: 1
---- !u!114 &8799241290541237448
+--- !u!114 &3342529933915302176
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}

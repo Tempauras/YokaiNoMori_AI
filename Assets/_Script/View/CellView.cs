@@ -13,7 +13,7 @@ public class CellView : MonoBehaviour
 
 	private void Start()
 	{
-		m_MoveButton.onClick.AddListener(_Move);
+		m_MoveButton.onClick.AddListener(Move);
 		SetInteractable(false);
 	}
 
@@ -29,7 +29,12 @@ public class CellView : MonoBehaviour
 		m_ButtonView.enabled = iInteractable;
 	}
 
-	private void _Move()
+	public bool IsInteractable()
+	{
+		return m_MoveButton.enabled && m_ButtonView.enabled;
+	}
+
+	public void Move()
 	{
 		m_BoardView.MoveTo(m_CellIdx);
 	}
