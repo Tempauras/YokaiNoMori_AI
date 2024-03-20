@@ -315,7 +315,6 @@ public class BoardView : MonoBehaviour
 	private IEnumerator _DelayPlayAI()
 	{
 		yield return new WaitForEndOfFrame();
-		yield return new WaitForSeconds(1);
 		m_AI.StartTurn();
 	}
 }
