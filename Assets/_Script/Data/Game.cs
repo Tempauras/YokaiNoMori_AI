@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 
 namespace YokaiNoMori.Coffee
@@ -121,6 +122,8 @@ namespace YokaiNoMori.Coffee
 
 		private LinkedList<MoveData> _movesData = new LinkedList<MoveData>();
 		private int _nbRepeatedMoves = 0;
+
+		private long _gameHash = 0;
 
 		public Game()
 		{
@@ -540,6 +543,8 @@ namespace YokaiNoMori.Coffee
 		{
 			_movesData.AddLast(move);
 
+			HashCurrentGame();
+
 			if(_movesData.Count < 3)
 				return;
 
@@ -551,6 +556,56 @@ namespace YokaiNoMori.Coffee
 
 			if(_nbRepeatedMoves >= 10)
 				OnEnd?.Invoke(0);
+		}
+
+		private void HashCurrentGame()
+		{
+			byte[] data = new byte[8];
+			int index = 0;
+			for (int i = 0; i < _gameBoard.Length; i++)
+			{
+                if (_gameBoard[i] != null)
+                {
+                    byte encode = 0b_0000_0000;
+					byte mask;
+                    switch (_gameBoard[i].GetPieceType())
+                    {
+                        case PieceType.KOROPOKKURU:
+							mask = (1 << 0);
+							encode |= mask;
+                            break;
+                        case PieceType.KITSUNE:
+                            mask = (1 << 1);
+                            encode |= mask;
+                            break;
+                        case PieceType.TANUKI:
+							mask = (1 << 0) | (1 << 1);
+							encode |= mask;
+                            break;
+                        case PieceType.KODAMA:
+							mask = (1 << 2);
+							encode |= mask;
+                            break;
+                        case PieceType.KODAMA_SAMURAI:
+							mask = (1 << 0) | (1 << 2);
+							encode |= mask;
+                            break;
+                        default:
+                            break;
+                    }
+					byte pos = Convert.ToByte(i);
+					mask = (byte)(pos << 3);
+					encode |= mask;
+					if (_gameBoard[i].GetPlayerOwnership() == PlayerOwnership.TOP)
+					{
+						mask = (1 << 7);
+						encode |= mask;
+					}
+					data[index] = encode;
+					index++;
+                }
+            }
+
 		}
 
 		public List<int> AllowedMove(Piece piece)
