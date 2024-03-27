@@ -189,6 +189,10 @@ namespace YokaiNoMori.Coffee
 				}
                 m_DebugString += $"{iDepth} - {move.Key.GetPieceType()}->{move.Value}: {curMoveVal} {(iDepth != 1 ? "\n" : "\n ")}";
                 iGame.Rewind();
+				if (value >= 1000)
+				{
+					return value;
+				}
 			}
 
 			return value;
