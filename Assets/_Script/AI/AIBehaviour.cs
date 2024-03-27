@@ -189,6 +189,7 @@ namespace YokaiNoMori.Coffee
 		{
 			float value = 0;
 			PlayerOwnership curPlayer = iGame.GetCurrentPlayer();
+			
 			for(int cellIdx = 0; cellIdx < 12; cellIdx++)
 			{
 				Piece piece = iGame.GetCell(cellIdx);
@@ -198,7 +199,8 @@ namespace YokaiNoMori.Coffee
 				PlayerOwnership pieceCamp = piece.GetPlayerOwnership();
 				PieceType pieceType = piece.GetPieceType();
 				float campMultiplier = pieceCamp == curPlayer ? 1 : -1;
-				value += campMultiplier * GetPieceValue(pieceType);
+				value += campMultiplier * GetPieceValue(pieceType) * 2;
+				//King Position on board
 				if(pieceType == PieceType.KOROPOKKURU)
 				{
 					if(pieceCamp == PlayerOwnership.BOTTOM && cellIdx >= 6)
@@ -214,6 +216,8 @@ namespace YokaiNoMori.Coffee
 							value += campMultiplier * 25;
 					}
 				}
+				//End King Position on board
+
 			}
 
 			int handCamp = curPlayer == PlayerOwnership.BOTTOM ? 1 : -1;
