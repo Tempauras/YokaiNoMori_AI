@@ -121,5 +121,17 @@ namespace YokaiNoMori.Coffee
 			}
 			return results;
 		}
+
+	}
+
+	public class PieceComparer : IComparer<Piece>
+	{
+		public int Compare(Piece x, Piece y)
+		{
+			int tmpRes = x.GetPieceType().CompareTo(y.GetPieceType());
+			if(tmpRes == 0)
+				return x.GetHashCode().CompareTo(y.GetHashCode());
+			else return tmpRes;
+		}
 	}
 }

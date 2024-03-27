@@ -28,6 +28,7 @@ public class BoardView : MonoBehaviour
 	private bool m_IsBottomPlayerTurn = true;
 	private bool m_IsEnded = false;
 	private bool m_IsPaused = false;
+	private bool m_IsRewinding = false;
 
 	private Piece m_SelectedPiece = null;
 
@@ -189,6 +190,7 @@ public class BoardView : MonoBehaviour
 			return;
 		}
 		m_IsEnded = true;
+		m_AI.AbortTurn();
 		m_PiecesGroup.SetAllTogglesOff();
 		_UpdateBoardView();
 		m_Timer.Pause();
@@ -298,12 +300,20 @@ public class BoardView : MonoBehaviour
 
 	public void Rewind()
 	{
+		m_AI.AbortTurn();
+
+		m_IsRewinding = true;
+
 		m_GameModel.Rewind();
+		if(m_IsSingleplayer && !m_IsBottomPlayerTurn)
+			m_GameModel.Rewind();
+
+		m_IsRewinding = false;
 	}
 
 	public void PlayAI_IfNeeded()
 	{
-		if(m_IsSingleplayer && !m_IsBottomPlayerTurn)
+		if(m_IsSingleplayer && !m_IsBottomPlayerTurn && !m_IsRewinding)
 			PlayAI();
 	}
 
@@ -314,12 +324,12 @@ public class BoardView : MonoBehaviour
 
 	private IEnumerator _DelayPlayAI()
 	{
-		yield return new WaitForSeconds(1);
+		yield return new WaitForSeconds(0.2f);
 		m_AI.StartTurn();
 	}
 
-	public void Magic()
+	public void StopAI()
 	{
-		m_AI.Magic();
+		m_AI.StopTurn();
 	}
 }

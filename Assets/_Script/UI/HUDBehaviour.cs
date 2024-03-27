@@ -23,9 +23,4 @@ public class HUDBehaviour : MonoBehaviour
 	{
 		m_Game.Rewind();
 	}
-
-	public void Magic()
-	{
-		m_Game.Magic();
-	}
 }

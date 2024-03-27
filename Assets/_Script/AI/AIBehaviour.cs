@@ -1,6 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
 using YokaiNoMori.Enumeration;
@@ -8,8 +10,8 @@ using YokaiNoMori.Interface;
 
 namespace YokaiNoMori.Coffee
 {
+	using Random = UnityEngine.Random;
 	using RawMoveData = KeyValuePair<Piece, int>;
-	using EvaluatedMove = KeyValuePair<KeyValuePair<Piece, int>, int>;
 
 	public class AIBehaviour // : ICompetitor
 	{
@@ -18,7 +20,6 @@ namespace YokaiNoMori.Coffee
 		private Game m_RealGame;
 		private Game m_GameModel;
 		private Dictionary<Piece, Piece> m_InternToRealGame;
-		private static Dictionary<Piece, Piece> s_DictDummy;
 
 		private ECampType m_Camp = ECampType.NONE;
 		private PlayerOwnership m_PlayerOwnership;
@@ -26,14 +27,20 @@ namespace YokaiNoMori.Coffee
 		private bool m_LastMoveEnded = false;
 		private int m_LastEndCode;
 
-		private const int m_SearchDepth = 5;
-		private static RawMoveData? s_MoveDataDummy;
+		private const int m_SearchDepth = 8;
+		private const int m_MaxComputeTime = 5000; // in millisecondss
+
 		private int m_NbMoveExplored = 0;
-		private float m_LastMoveEval = 0;
-		private Dictionary<long, float> m_AlreadyEvaluatedBottom = new Dictionary<long, float>();
-		private Dictionary<long, float> m_AlreadyEvaluatedTop = new Dictionary<long, float>();
-		// private List<RawMoveData> m_FutureBestMoves = new List<RawMoveData>();
 		private string m_DebugString = "";
+
+		private struct Result
+		{
+			public RawMoveData? BestMove;
+			public int BestMoveEval;
+		}
+
+		private CancellationTokenSource m_EndComputation = null;
+		private bool m_DoMove = true;
 
 		public AIBehaviour()
 		{
@@ -55,19 +62,80 @@ namespace YokaiNoMori.Coffee
 			m_Camp = iCamp;
 		}
 
-		public void StartTurn()
+		public async void StartTurn()
 		{
-			MoveBestNegamax();
+			UpdateData();
+
+			if(m_GameModel.GetCurrentPlayer() != m_PlayerOwnership)
+			{
+				Debug.LogWarning("AI attempted to play for player");
+				return;
+			}
+
+			m_EndComputation = new CancellationTokenSource();
+			m_EndComputation.CancelAfter(m_MaxComputeTime);
+			m_DoMove = true;
+
+			// debug
+			float startTime = Time.time;
+			m_DebugString = "";
+			m_NbMoveExplored = 0;
+
+			Result result;
+			result.BestMove = null;
+			result.BestMoveEval = int.MinValue;
+			try
+			{
+				result = await Negamax();
+			}
+			catch(OperationCanceledException)
+			{
+				Debug.LogWarning("Computation canceled");
+			}
+			catch(Exception iException)
+			{
+				Debug.LogError("An error occured in AI computation:");
+				Debug.LogException(iException);
+			}
+			finally
+			{
+				if(m_DoMove)
+				{
+					if(result.BestMove.HasValue)
+					{
+						//debug
+						Debug.Log($"Number of evaluated positions: {m_NbMoveExplored}");
+						float timeSpan = Time.time - startTime;
+						Debug.Log($"Computation time: {timeSpan}s ({(timeSpan != 0 ? m_NbMoveExplored / timeSpan : 0)} pos/seconds)");
+						Debug.Log($"Move evaluation: {result.BestMoveEval}");
+						Debug.Log($"Debug string:\n{m_DebugString}");
+						// Write the string array to a new file named "WriteLines.txt".
+						/*using(StreamWriter outputFile = new StreamWriter(Path.Combine(Application.dataPath, "_AI_Debug.txt")))
+						{
+							outputFile.Write(m_DebugString);
+						}*/
+
+						Move(result.BestMove.Value);
+					}
+					else
+						MoveRandom();
+				}
+				else
+					Debug.Log("Aborted");
+			}
 		}
 
 		public void StopTurn()
 		{
+			m_EndComputation.Cancel();
+		}
+
+		public void AbortTurn()
+		{
+			m_DoMove = false;
+			m_EndComputation.Cancel();
 		}
 		#endregion Competitor functions
-
-		public void Magic()
-		{
-		}
 
 		public void SetCamp(PlayerOwnership iPlayerOwnership)
 		{
@@ -85,122 +153,133 @@ namespace YokaiNoMori.Coffee
 			m_GameModel.OnEnd += _OnModelEnd;
 		}
 
-		private void _OnModelEnd(int iEndCode)
-		{
-			m_LastMoveEnded = true;
-			m_LastEndCode = iEndCode;
-		}
-
 		private void MoveRandom()
 		{
 			List<RawMoveData> moves = GetAllMoves(m_RealGame);
 			Move(moves[Random.Range(0, moves.Count)]);
 		}
 
-		private async void MoveBestNegamax()
+		private void _OnModelEnd(int iEndCode)
 		{
-			float startTime = Time.time;
-			m_DebugString = "\n";
-			RawMoveData bestMove = await Negamax();
-			Debug.Log($"Computation time for {m_SearchDepth} search depth: {Time.time - startTime}s");
-			Debug.Log($"Number of evaluated positions: {m_NbMoveExplored}");
-			Debug.Log($"Move evaluation: {m_LastMoveEval}");
-			Debug.Log($"Move evaluation: {m_DebugString}");
-			Move(bestMove);
+			m_LastMoveEnded = true;
+			m_LastEndCode = iEndCode;
 		}
 
-		private Task<RawMoveData> Negamax()
+		private Task<Result> Negamax()
 		{
-			UpdateData();
-			return Task.Run(
-				() =>
-				{
-					RawMoveData? bestMove = null;
-					m_NbMoveExplored = 0;
-					m_AlreadyEvaluatedBottom.Clear();
-					m_AlreadyEvaluatedTop.Clear();
-					m_LastMoveEval = _Negamax(m_GameModel, m_SearchDepth - 1, ref bestMove);
-					bestMove = KeyValuePair.Create(m_InternToRealGame[bestMove.Value.Key], bestMove.Value.Value);
-					return bestMove.Value;
-				});
+			return Task.Run(() => _Negamax(m_GameModel, m_SearchDepth - 1));
 		}
 
-		private float _Negamax(Game iGame, int iDepth, ref RawMoveData? oBestMove)
+		private Result _Negamax(Game iGame, int iDepth)
 		{
-			m_NbMoveExplored++;
+			Result result = new Result();
+			result.BestMoveEval = int.MinValue;
 
-			/*Dictionary<long, float> computedEvaluations = (iGame.GetCurrentPlayer() == PlayerOwnership.BOTTOM) ? m_AlreadyEvaluatedBottom : m_AlreadyEvaluatedTop;*/
-
-			/*float eval;
-			long gameHash = iGame.GetHash();
-			if(computedEvaluations.TryGetValue(gameHash, out eval))
-				return eval;*/
-
-			if(iDepth <= 0)
-				return _Evaluate(iGame);
-
-			float value = float.NegativeInfinity;
-			float curMoveVal = float.NegativeInfinity;
+			int curMoveVal = int.MinValue;
+			PlayerOwnership curPlayer = iGame.GetCurrentPlayer();
 			List<RawMoveData> moves = GetAllMoves(iGame);
-			if (moves.Count < 1)
+			/*if(moves.Count == 0)
 			{
-				Debug.LogWarning("Tom pk ca marche pas");
-			}
+				Debug.LogError("No move to visit");
+				return result;
+			}*/
+
+			/*long initHash = iGame.GetHash();
+			int moveIdx = 0;*/
 			foreach(RawMoveData move in moves)
 			{
-				bool success = iGame.MovePieces(move.Key, move.Value);
-				if(!success)
+				m_NbMoveExplored++;
+
+				/*if(iDepth == m_SearchDepth - 1)
+					Debug.Log($"Progress: {moveIdx++}/{moves.Count}");*/
+
+				if(!iGame.MovePieces(move.Key, move.Value))
 				{
-					Debug.LogWarning("AHHHHHHHHHHHHHHHHHHHHHHPKCAMARCHEPAS");
-                    continue;
-                }
-					
+					Debug.LogError("Failed move");
+					continue;
+				}
+
 				if(m_LastMoveEnded)
 				{
+					int multiplier = 0;
 					switch(m_LastEndCode)
 					{
 						case 0:
-							curMoveVal = 0;
 							break;
 						case 1:
-							curMoveVal = (iGame.GetCurrentPlayer() == PlayerOwnership.BOTTOM ? -1 : 1) * (1000 + iDepth);
+							multiplier = (curPlayer == PlayerOwnership.BOTTOM ? 1 : -1);
 							break;
 						case 2:
-							curMoveVal = (iGame.GetCurrentPlayer() == PlayerOwnership.BOTTOM ? 1 : -1) * (1000 + iDepth);
+							multiplier = (curPlayer == PlayerOwnership.BOTTOM ? -1 : 1);
 							break;
 						default:
 							Debug.LogError("End code not supported");
 							break;
 					}
+					curMoveVal = multiplier * (10000 + iDepth);
 					m_LastMoveEnded = false;
 				}
 				else
 				{
-					Game localCopy = new Game(iGame, out s_DictDummy);
-					localCopy.OnEnd += _OnModelEnd;
-					curMoveVal = -_Negamax(localCopy, iDepth - 1, ref s_MoveDataDummy);
+					if(result.BestMoveEval == 10000 + iDepth - 1 || result.BestMoveEval == 10000 + iDepth - 2)
+						curMoveVal = int.MinValue; // a win has been found, we only need to search for a shorter win, so we don't explore further
+					else
+					{
+						if(iDepth <= 1)
+							curMoveVal = -_Evaluate(iGame);
+						else
+						{
+							Result res = _Negamax(iGame, iDepth - 1);
+							curMoveVal = -res.BestMoveEval;
+						}
+					}
 				}
 
-				if(curMoveVal > value)
+				/*m_DebugString += $"{iDepth} - {move.Key.GetPieceType()}->{move.Value}: {curMoveVal}\n";*/
+				iGame.Rewind();
+				/*
+								if(iGame.GetCurrentPlayer() != curPlayer)
+									Debug.LogError("Rewind error : player turn changed");
+								if(initHash != iGame.GetHash())
+									Debug.LogError("Rewind error : hash changed");*/
+
+				if(curMoveVal > result.BestMoveEval)
 				{
-                    value = curMoveVal;
-                    //m_DebugString += $"{iDepth} - {move.Key.GetPieceType()}->{move.Value}: {value} {(iDepth != 1 ? "\n" : "\n ")}";
-					oBestMove = move;
+					result.BestMoveEval = curMoveVal;
+					result.BestMove = move;
+
+					if(result.BestMoveEval >= 10000 + iDepth)
+						return result;
 				}
-                m_DebugString += $"{iDepth} - {move.Key.GetPieceType()}->{move.Value}: {curMoveVal} {(iDepth != 1 ? "\n" : "\n ")}";
-                iGame.Rewind();
-				if (value >= 1000)
+
+				if(m_EndComputation.IsCancellationRequested)
 				{
-					return value;
+					/*Debug.LogWarning("Computation cancelled");*/
+					return result;
 				}
 			}
 
-			return value;
+			return result;
 		}
 
-		private float _Evaluate(Game iGame)
+		private void _BreadthFirstNegamax()
 		{
-			float value = 0;
+			Dictionary<Piece, Piece> gameToReal;
+			Game game = new Game(m_GameModel, out gameToReal);
+
+			List<RawMoveData> moves = new List<RawMoveData>();
+
+			List<long> nextHashesToVisit = new List<long>();
+			while(nextHashesToVisit.Count > 0)
+			{
+				List<long> hashesToVisit = nextHashesToVisit;
+				nextHashesToVisit = new List<long>();
+			}
+		}
+
+		private int _Evaluate(Game iGame)
+		{
+			int value = 0;
 			PlayerOwnership curPlayer = iGame.GetCurrentPlayer();
 
 			for(int cellIdx = 0; cellIdx < 12; cellIdx++)
@@ -211,7 +290,7 @@ namespace YokaiNoMori.Coffee
 
 				PlayerOwnership pieceCamp = piece.GetPlayerOwnership();
 				PieceType pieceType = piece.GetPieceType();
-				float campMultiplier = pieceCamp == curPlayer ? 1 : -1;
+				int campMultiplier = pieceCamp == curPlayer ? 1 : -1;
 				value += campMultiplier * GetPieceValue(pieceType) * 2;
 				//King Position on board
 				if(pieceType == PieceType.KOROPOKKURU)
@@ -241,7 +320,7 @@ namespace YokaiNoMori.Coffee
 			return value;
 		}
 
-		private static float GetPieceValue(PieceType iPieceType)
+		private static int GetPieceValue(PieceType iPieceType)
 		{
 			switch(iPieceType)
 			{
@@ -279,8 +358,8 @@ namespace YokaiNoMori.Coffee
 		{
 			List<RawMoveData> moves = new List<RawMoveData>();
 			foreach(int pos in iGame.AllowedMove(iPiece))
-                moves.Add(KeyValuePair.Create(iPiece, pos));
-				
+				moves.Add(KeyValuePair.Create(iPiece, pos));
+
 			return moves;
 		}
 
@@ -291,7 +370,7 @@ namespace YokaiNoMori.Coffee
 
 		private void Move(Piece iPiece, int iPos)
 		{
-			m_RealGame.MovePieces(iPiece, iPos);
+			m_RealGame.MovePieces(m_InternToRealGame.GetValueOrDefault(iPiece, null), iPos);
 		}
 
 		// read game

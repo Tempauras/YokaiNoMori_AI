@@ -22,21 +22,17 @@ namespace YokaiNoMori.Coffee
 		public int startPos;
 		public int endPos;
 		public PieceData? pieceEaten;
+		public bool isWinningNextTurnBottom;
+		public bool isWinningNextTurnTop;
 
-		public MoveData(PieceData piece, int StartPos, int EndPos)
-		{
-			this.piece = piece;
-			this.startPos = StartPos;
-			this.endPos = EndPos;
-			this.pieceEaten = null;
-		}
-
-		public MoveData(PieceData piece, int StartPos, int EndPos, PieceData? pieceEaten)
+		public MoveData(PieceData piece, int StartPos, int EndPos, bool IsWinningNextTurnBottom, bool IsWinningNextTurnTop, PieceData? pieceEaten = null)
 		{
 			this.piece = piece;
 			this.startPos = StartPos;
 			this.endPos = EndPos;
 			this.pieceEaten = pieceEaten;
+			this.isWinningNextTurnBottom = IsWinningNextTurnBottom;
+			this.isWinningNextTurnTop = IsWinningNextTurnTop;
 		}
 	}
 
@@ -124,6 +120,7 @@ namespace YokaiNoMori.Coffee
 		private int _nbRepeatedMoves = 0;
 
 		private long _gameHash = 0;
+		private bool _isHashDirty = true;
 
 		public Game()
 		{
@@ -138,6 +135,8 @@ namespace YokaiNoMori.Coffee
 			_isBottomWinningNextTurn = copy._isBottomWinningNextTurn;
 			_isTopWinningNextTurn = copy._isTopWinningNextTurn;
 			_nbRepeatedMoves = copy._nbRepeatedMoves;
+			_gameHash = copy._gameHash;
+			_isHashDirty = copy._isHashDirty;
 
 			// cloning move data
 			Dictionary<Piece, Piece> toNewPiece = new Dictionary<Piece, Piece>();
@@ -339,23 +338,28 @@ namespace YokaiNoMori.Coffee
 					boardNumber = boardNumber + (1 * multiplier);
 				}
 			}
+
+			_isHashDirty = true;
 		}
 
 		public bool Rewind()
 		{
 			if(_movesData.Count == 0)
+			{
+				Debug.LogWarning("Attempted to rewind while no recorded move");
 				return false;
+			}
 			MoveData lastMoveData = _movesData.Last.Value;
 			_movesData.RemoveLast();
-			PlayerOwnership playerOwnership = _currentPlayerTurn == PlayerOwnership.TOP ? PlayerOwnership.BOTTOM : PlayerOwnership.TOP ;
+			PlayerOwnership playerOwnership = _currentPlayerTurn == PlayerOwnership.TOP ? PlayerOwnership.BOTTOM : PlayerOwnership.TOP;
 			if(lastMoveData.startPos == -1)
 			{
 				if(playerOwnership == PlayerOwnership.TOP)
 					_handPiecesTopPlayer.Add(_gameBoard[lastMoveData.endPos]);
 				else
 					_handPiecesBottomPlayer.Add(_gameBoard[lastMoveData.endPos]);
-                _gameBoard[lastMoveData.endPos] = null;
-            }
+				_gameBoard[lastMoveData.endPos] = null;
+			}
 			else
 			{
 				Piece piece = _gameBoard[lastMoveData.endPos];
@@ -366,24 +370,29 @@ namespace YokaiNoMori.Coffee
 					Piece pieceEaten;
 					if(playerOwnership == PlayerOwnership.TOP)
 					{
-                        pieceEaten = _handPiecesTopPlayer[_handPiecesTopPlayer.Count -1];
-                        pieceEaten.SetPlayerOwnership(PlayerOwnership.BOTTOM);
-                        _handPiecesTopPlayer.RemoveAt(_handPiecesTopPlayer.Count - 1);
+						pieceEaten = _handPiecesTopPlayer[_handPiecesTopPlayer.Count - 1];
+						pieceEaten.SetPlayerOwnership(PlayerOwnership.BOTTOM);
+						_handPiecesTopPlayer.Remove(pieceEaten);
 					}
 					else
 					{
-                        pieceEaten = _handPiecesBottomPlayer[_handPiecesBottomPlayer.Count -1];
-                        pieceEaten.SetPlayerOwnership(PlayerOwnership.TOP);
-                        _handPiecesBottomPlayer.RemoveAt(_handPiecesBottomPlayer.Count - 1);
+						pieceEaten = _handPiecesBottomPlayer[_handPiecesBottomPlayer.Count - 1];
+						pieceEaten.SetPlayerOwnership(PlayerOwnership.TOP);
+						_handPiecesBottomPlayer.Remove(pieceEaten);
 					}
-                    pieceEaten.SetPieceType(lastMoveData.pieceEaten.Value);
+					pieceEaten.SetPieceType(lastMoveData.pieceEaten.Value);
 					_gameBoard[lastMoveData.endPos] = pieceEaten;
-                }
+				}
 				else
 				{
 					_gameBoard[lastMoveData.endPos] = null;
 				}
 			}
+
+			_isBottomWinningNextTurn = lastMoveData.isWinningNextTurnBottom;
+			_isTopWinningNextTurn = lastMoveData.isWinningNextTurnTop;
+
+			_isHashDirty = true;
 			ChangeTurn();
 			OnMovement?.Invoke();
 			return true;
@@ -412,9 +421,28 @@ namespace YokaiNoMori.Coffee
 			if(ownerOfPiece != _currentPlayerTurn)
 				return false;
 
+			_isHashDirty = true;
+
 			int indexOfMovingPiece = Array.IndexOf(_gameBoard, pieceMoving);
 			if(indexOfMovingPiece == -1)
-				return ParachutePiece(pieceMoving, PositionToMoveTo, IsRecordingMovement);
+			{
+				bool success = ParachutePiece(pieceMoving, PositionToMoveTo, IsRecordingMovement);
+				if(!success)
+					return false;
+
+				// opponent king had been placed on last row and we didn't capture king, lose
+				if(ownerOfPiece == PlayerOwnership.BOTTOM && _isTopWinningNextTurn)
+				{
+					OnEnd?.Invoke(2);
+					ChangeTurn();
+				}
+				if(ownerOfPiece == PlayerOwnership.TOP && _isBottomWinningNextTurn)
+				{
+					OnEnd?.Invoke(1);
+					ChangeTurn();
+				}
+				return true;
+			}
 
 			if(!pieceMoving.GetNeighbour(indexOfMovingPiece).Contains(PositionToMoveTo))
 			{
@@ -437,32 +465,32 @@ namespace YokaiNoMori.Coffee
 
 			if(IsRecordingMovement)
 			{
-                if (WasPromote)
-                    RecordMove(PieceData.Pawn, indexOfMovingPiece, PositionToMoveTo, prevPiece?.GetPieceData());
+				if(WasPromote)
+					RecordMove(PieceData.Pawn, indexOfMovingPiece, PositionToMoveTo, prevPiece?.GetPieceData());
 				else
 					RecordMove(pieceMoving.GetPieceData(), indexOfMovingPiece, PositionToMoveTo, prevPiece?.GetPieceData());
-            }
+			}
 
 			// managing piece that got taken if any
 			if(prevPiece != null)
 			{
 				PieceType prevPieceType = prevPiece.GetPieceType();
 
-                if (ownerOfPiece == PlayerOwnership.TOP)
+				if(ownerOfPiece == PlayerOwnership.TOP)
 					_handPiecesTopPlayer.Add(prevPiece);
 				else
 					_handPiecesBottomPlayer.Add(prevPiece);
 
-                if (prevPieceType == PieceType.KOROPOKKURU)
-                {
-                    OnEnd?.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
-                    ChangeTurn();
-                    return true;
+				if(prevPieceType == PieceType.KOROPOKKURU)
+				{
+					OnEnd?.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
+					ChangeTurn();
+					return true;
 				}
 				else
-                    prevPiece.SetPlayerOwnership(ownerOfPiece);
+					prevPiece.SetPlayerOwnership(ownerOfPiece);
 
-                if (prevPieceType == PieceType.KODAMA_SAMURAI)
+				if(prevPieceType == PieceType.KODAMA_SAMURAI)
 					prevPiece.SetPieceType(PieceData.Pawn);
 			}
 
@@ -484,18 +512,10 @@ namespace YokaiNoMori.Coffee
 			if(pieceType == PieceType.KOROPOKKURU &&
 				((ownerOfPiece == PlayerOwnership.TOP) ? (PositionToMoveTo <= 2) : (PositionToMoveTo >= 9)))
 			{
-				List<int> allowedEnemyMove = new List<int>();
-				foreach(Piece piece in _gameBoard)
+				HashSet<int> attackedCells = GetCellsAttackedByPlayer(ownerOfPiece == PlayerOwnership.BOTTOM ? PlayerOwnership.TOP : PlayerOwnership.BOTTOM);
+				if(!attackedCells.Contains(PositionToMoveTo))
 				{
-					if(piece == null)
-						continue;
-					if(piece.GetPlayerOwnership() != ownerOfPiece)
-						allowedEnemyMove.AddRange(AllowedMove(piece));
-				}
-
-				// can't get taken, win
-				if(!allowedEnemyMove.Contains(PositionToMoveTo))
-				{
+					// can't get taken, win
 					OnEnd?.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
 					ChangeTurn();
 					return true;
@@ -513,7 +533,23 @@ namespace YokaiNoMori.Coffee
 			return true;
 		}
 
-		public bool ParachutePiece(Piece pieceParachuting, int PositionToParachuteTo, bool IsRecordingMovement)
+		private HashSet<int> GetCellsAttackedByPlayer(PlayerOwnership Player)
+		{
+			HashSet<int> attackedCells = new HashSet<int>();
+			foreach(Piece piece in _gameBoard)
+			{
+				if(piece == null)
+					continue;
+				if(piece.GetPlayerOwnership() == Player)
+				{
+					foreach(int move in AllowedMove(piece))
+						attackedCells.Add(move);
+				}
+			}
+			return attackedCells;
+		}
+
+		private bool ParachutePiece(Piece pieceParachuting, int PositionToParachuteTo, bool IsRecordingMovement)
 		{
 			PlayerOwnership ownerOfPiece = pieceParachuting.GetPlayerOwnership();
 			if(ownerOfPiece != _currentPlayerTurn)
@@ -521,7 +557,7 @@ namespace YokaiNoMori.Coffee
 
 			//Check if the piece exists in its owner hand
 			List<Piece> playerHand = (ownerOfPiece == PlayerOwnership.TOP ? _handPiecesTopPlayer : _handPiecesBottomPlayer);
-			bool pieceExistsInHand = playerHand.Exists(x => x == pieceParachuting);
+			bool pieceExistsInHand = playerHand.Contains(pieceParachuting);
 			if(!pieceExistsInHand)
 			{
 				Debug.Log("[GameManager - ParachutePiece] Piece does not exist in its owner hand, wtf happened");
@@ -547,14 +583,12 @@ namespace YokaiNoMori.Coffee
 
 		private void RecordMove(PieceData piece, int StartPos, int EndPos, PieceData? pieceEaten = null)
 		{
-			RecordMove(new MoveData(piece, StartPos, EndPos, pieceEaten));
+			RecordMove(new MoveData(piece, StartPos, EndPos, _isBottomWinningNextTurn, _isBottomWinningNextTurn, pieceEaten));
 		}
 
 		private void RecordMove(MoveData move)
 		{
 			_movesData.AddLast(move);
-
-			HashCurrentGame();
 
 			if(_movesData.Count < 3)
 				return;
@@ -586,30 +620,21 @@ namespace YokaiNoMori.Coffee
 				pieceIdx++;
 			}
 
-			List<Piece> HandPieceTopPlayerClone = new List<Piece>(_handPiecesTopPlayer);
-			HandPieceTopPlayerClone.Sort((x,y) =>
-			{
-				
-				return x.GetPieceType().CompareTo(y.GetPieceType());
-			});
-			List<Piece> HandPieceBottomPlayerClone = new List<Piece>(_handPiecesBottomPlayer);
-            HandPieceBottomPlayerClone.Sort((x, y) =>
-            {
-
-                return x.GetPieceType().CompareTo(y.GetPieceType());
-            });
-            foreach (Piece piece in HandPieceBottomPlayerClone)
+			SortedSet<Piece> sortedBottomHand = new SortedSet<Piece>(_handPiecesBottomPlayer, new PieceComparer());
+			foreach(Piece piece in sortedBottomHand)
 			{
 				data[pieceIdx] = HashPiece(piece, 15, false);
 				pieceIdx++;
 			}
-			foreach(Piece piece in HandPieceTopPlayerClone)
+			SortedSet<Piece> sortedTopHand = new SortedSet<Piece>(_handPiecesTopPlayer, new PieceComparer());
+			foreach(Piece piece in sortedTopHand)
 			{
 				data[pieceIdx] = HashPiece(piece, 15, true);
 				pieceIdx++;
 			}
 
 			_gameHash = BitConverter.ToInt64(data);
+			_isHashDirty = false;
 		}
 
 		private byte HashPiece(Piece piece, int Position, bool IsTop)
@@ -617,13 +642,16 @@ namespace YokaiNoMori.Coffee
 			byte hash = 0b_0000_0000;
 			hash |= (byte)piece.GetPieceType();
 			hash |= (byte)(Position << 3);
-			if(piece.GetPlayerOwnership() == PlayerOwnership.TOP)
+			if(IsTop)
 				hash |= 1 << 7;
 			return hash;
 		}
 
 		public long GetHash()
 		{
+			if(_isHashDirty)
+				HashCurrentGame();
+
 			return _gameHash;
 		}
 
@@ -689,7 +717,6 @@ namespace YokaiNoMori.Coffee
 			{
 				case PlayerOwnership.TOP:
 					_currentPlayerTurn = PlayerOwnership.BOTTOM;
-
 					break;
 				case PlayerOwnership.BOTTOM:
 					_currentPlayerTurn = PlayerOwnership.TOP;
