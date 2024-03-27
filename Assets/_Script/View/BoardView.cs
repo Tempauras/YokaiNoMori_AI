@@ -317,4 +317,9 @@ public class BoardView : MonoBehaviour
 		yield return new WaitForEndOfFrame();
 		m_AI.StartTurn();
 	}
+
+	public void Magic()
+	{
+		m_AI.Magic();
+	}
 }

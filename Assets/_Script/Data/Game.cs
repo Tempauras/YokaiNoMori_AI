@@ -142,7 +142,7 @@ namespace YokaiNoMori.Coffee
 			// cloning move data
 			Dictionary<Piece, Piece> toNewPiece = new Dictionary<Piece, Piece>();
 			newToOld = new Dictionary<Piece, Piece>();
-			foreach((Piece newPiece, Piece oldPiece) in Enumerable.Zip(_gameBoard, copy._gameBoard, Tuple.Create))
+			foreach((Piece newPiece, Piece oldPiece) in Enumerable.Zip(_gameBoard, copy._gameBoard, KeyValuePair.Create))
 			{
 				if(oldPiece != null)
 				{
@@ -150,12 +150,12 @@ namespace YokaiNoMori.Coffee
 					newToOld.Add(newPiece, oldPiece);
 				}
 			}
-			foreach((Piece newPiece, Piece oldPiece) in Enumerable.Zip(_handPiecesTopPlayer, copy._handPiecesTopPlayer, Tuple.Create))
+			foreach((Piece newPiece, Piece oldPiece) in Enumerable.Zip(_handPiecesTopPlayer, copy._handPiecesTopPlayer, KeyValuePair.Create))
 			{
 				toNewPiece.Add(oldPiece, newPiece);
 				newToOld.Add(newPiece, oldPiece);
 			}
-			foreach((Piece newPiece, Piece oldPiece) in Enumerable.Zip(_handPiecesBottomPlayer, copy._handPiecesBottomPlayer, Tuple.Create))
+			foreach((Piece newPiece, Piece oldPiece) in Enumerable.Zip(_handPiecesBottomPlayer, copy._handPiecesBottomPlayer, KeyValuePair.Create))
 			{
 				toNewPiece.Add(oldPiece, newPiece);
 				newToOld.Add(newPiece, oldPiece);
@@ -561,51 +561,46 @@ namespace YokaiNoMori.Coffee
 		private void HashCurrentGame()
 		{
 			byte[] data = new byte[8];
-			int index = 0;
-			for (int i = 0; i < _gameBoard.Length; i++)
-			{
-                if (_gameBoard[i] != null)
-                {
-                    byte encode = 0b_0000_0000;
-					byte mask;
-                    switch (_gameBoard[i].GetPieceType())
-                    {
-                        case PieceType.KOROPOKKURU:
-							mask = (1 << 0);
-							encode |= mask;
-                            break;
-                        case PieceType.KITSUNE:
-                            mask = (1 << 1);
-                            encode |= mask;
-                            break;
-                        case PieceType.TANUKI:
-							mask = (1 << 0) | (1 << 1);
-							encode |= mask;
-                            break;
-                        case PieceType.KODAMA:
-							mask = (1 << 2);
-							encode |= mask;
-                            break;
-                        case PieceType.KODAMA_SAMURAI:
-							mask = (1 << 0) | (1 << 2);
-							encode |= mask;
-                            break;
-                        default:
-                            break;
-                    }
-					byte pos = Convert.ToByte(i);
-					mask = (byte)(pos << 3);
-					encode |= mask;
-					if (_gameBoard[i].GetPlayerOwnership() == PlayerOwnership.TOP)
-					{
-						mask = (1 << 7);
-						encode |= mask;
-					}
-					data[index] = encode;
-					index++;
-                }
-            }
+			long pieceIdx = 0;
 
+			int cellIdx = -1;
+			foreach(Piece piece in _gameBoard)
+			{
+				cellIdx++;
+
+				if(piece == null)
+					continue;
+
+				data[pieceIdx] = HashPiece(piece, cellIdx, piece.GetPlayerOwnership() == PlayerOwnership.TOP);
+				pieceIdx++;
+			}
+			foreach(Piece piece in _handPiecesBottomPlayer)
+			{
+				data[pieceIdx] = HashPiece(piece, 15, false);
+				pieceIdx++;
+			}
+			foreach(Piece piece in _handPiecesTopPlayer)
+			{
+				data[pieceIdx] = HashPiece(piece, 15, true);
+				pieceIdx++;
+			}
+
+			_gameHash = BitConverter.ToInt64(data);
+		}
+
+		private byte HashPiece(Piece piece, int Position, bool IsTop)
+		{
+			byte hash = 0b_0000_0000;
+			hash |= (byte)piece.GetPieceType();
+			hash |= (byte)(Position << 3);
+			if(piece.GetPlayerOwnership() == PlayerOwnership.TOP)
+				hash |= 1 << 7;
+			return hash;
+		}
+
+		public long GetHash()
+		{
+			return _gameHash;
 		}
 
 		public List<int> AllowedMove(Piece piece)

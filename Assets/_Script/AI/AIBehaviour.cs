@@ -8,6 +8,7 @@ using YokaiNoMori.Interface;
 namespace YokaiNoMori.Coffee
 {
 	using RawMoveData = KeyValuePair<Piece, int>;
+	using EvaluatedMove = KeyValuePair<KeyValuePair<Piece, int>, int>;
 
 	public class AIBehaviour // : ICompetitor
 	{
@@ -24,11 +25,14 @@ namespace YokaiNoMori.Coffee
 		private bool m_LastMoveEnded = false;
 		private int m_LastEndCode;
 
-		private const int m_SearchDepth = 6;
+		private const int m_SearchDepth = 4;
 		private static RawMoveData? s_MoveDataDummy;
 		private int m_NbMoveExplored = 0;
 		private float m_LastMoveEval = 0;
-		private Dictionary<long, float> m_AlreadyEvaluated = new Dictionary<long, float>();
+		private Dictionary<long, float> m_AlreadyEvaluatedBottom = new Dictionary<long, float>();
+		private Dictionary<long, float> m_AlreadyEvaluatedTop = new Dictionary<long, float>();
+		// private List<RawMoveData> m_FutureBestMoves = new List<RawMoveData>();
+		private string m_DebugString = "";
 
 		public AIBehaviour()
 		{
@@ -59,6 +63,10 @@ namespace YokaiNoMori.Coffee
 		{
 		}
 		#endregion Competitor functions
+
+		public void Magic()
+		{
+		}
 
 		public void SetCamp(PlayerOwnership iPlayerOwnership)
 		{
@@ -91,10 +99,12 @@ namespace YokaiNoMori.Coffee
 		private async void MoveBestNegamax()
 		{
 			float startTime = Time.time;
+			m_DebugString = "\n";
 			RawMoveData bestMove = await Negamax();
 			Debug.Log($"Computation time for {m_SearchDepth} search depth: {Time.time - startTime}s");
 			Debug.Log($"Number of evaluated positions: {m_NbMoveExplored}");
 			Debug.Log($"Move evaluation: {m_LastMoveEval}");
+			Debug.Log($"Move evaluation: {m_DebugString}");
 			Move(bestMove);
 		}
 
@@ -106,7 +116,9 @@ namespace YokaiNoMori.Coffee
 				{
 					RawMoveData? bestMove = null;
 					m_NbMoveExplored = 0;
-					m_LastMoveEval = _Negamax(m_GameModel, m_SearchDepth, ref bestMove);
+					m_AlreadyEvaluatedBottom.Clear();
+					m_AlreadyEvaluatedTop.Clear();
+					m_LastMoveEval = _Negamax(m_GameModel, m_SearchDepth - 1, ref bestMove);
 					bestMove = KeyValuePair.Create(m_InternToRealGame[bestMove.Value.Key], bestMove.Value.Value);
 					return bestMove.Value;
 				});
@@ -115,7 +127,15 @@ namespace YokaiNoMori.Coffee
 		private float _Negamax(Game iGame, int iDepth, ref RawMoveData? oBestMove)
 		{
 			m_NbMoveExplored++;
-			if(iDepth == 0)
+
+			/*Dictionary<long, float> computedEvaluations = (iGame.GetCurrentPlayer() == PlayerOwnership.BOTTOM) ? m_AlreadyEvaluatedBottom : m_AlreadyEvaluatedTop;*/
+
+			/*float eval;
+			long gameHash = iGame.GetHash();
+			if(computedEvaluations.TryGetValue(gameHash, out eval))
+				return eval;*/
+
+			if(iDepth <= 0)
 				return _Evaluate(iGame);
 
 			float value = float.NegativeInfinity;
@@ -154,14 +174,12 @@ namespace YokaiNoMori.Coffee
 
 				if(curMoveVal > value)
 				{
+					m_DebugString += $"{new string('\t', iDepth != 1 ? m_SearchDepth - iDepth : 1)}{move.Key.GetPieceType()}->{move.Value}: {value}{(iDepth != 1 ? "\n" : " ; ")}";
 					value = curMoveVal;
 					oBestMove = move;
 				}
 
 				iGame.Rewind();
-
-				/*if(value >= 1000)
-					return value;*/
 			}
 
 			return value;
@@ -184,9 +202,17 @@ namespace YokaiNoMori.Coffee
 				if(pieceType == PieceType.KOROPOKKURU)
 				{
 					if(pieceCamp == PlayerOwnership.BOTTOM && cellIdx >= 6)
+					{
 						value += campMultiplier * 25;
+						if(cellIdx >= 9)
+							value += campMultiplier * 25;
+					}
 					if(pieceCamp == PlayerOwnership.TOP && cellIdx < 6)
+					{
 						value += campMultiplier * 25;
+						if(cellIdx < 3)
+							value += campMultiplier * 25;
+					}
 				}
 			}
 
