@@ -18,12 +18,12 @@ namespace YokaiNoMori.Coffee
 
 	public struct MoveData
 	{
-		public Piece piece;
+		public PieceData piece;
 		public int startPos;
 		public int endPos;
-		public Piece pieceEaten;
+		public PieceData? pieceEaten;
 
-		public MoveData(Piece piece, int StartPos, int EndPos)
+		public MoveData(PieceData piece, int StartPos, int EndPos)
 		{
 			this.piece = piece;
 			this.startPos = StartPos;
@@ -31,7 +31,7 @@ namespace YokaiNoMori.Coffee
 			this.pieceEaten = null;
 		}
 
-		public MoveData(Piece piece, int StartPos, int EndPos, Piece pieceEaten)
+		public MoveData(PieceData piece, int StartPos, int EndPos, PieceData? pieceEaten)
 		{
 			this.piece = piece;
 			this.startPos = StartPos;
@@ -161,11 +161,7 @@ namespace YokaiNoMori.Coffee
 				newToOld.Add(newPiece, oldPiece);
 			}
 
-			foreach(MoveData moveData in copy._movesData)
-			{
-				_movesData.AddLast(new MoveData(
-					toNewPiece[moveData.piece], moveData.startPos, moveData.endPos, moveData.pieceEaten == null ? null : toNewPiece[moveData.pieceEaten]));
-			}
+			_movesData = new LinkedList<MoveData>(_movesData);
 		}
 
 		public void DecodeBoardStateString(string BoardStateString)
@@ -351,32 +347,38 @@ namespace YokaiNoMori.Coffee
 				return false;
 			MoveData lastMoveData = _movesData.Last.Value;
 			_movesData.RemoveLast();
-			PlayerOwnership playerOwnership = lastMoveData.piece.GetPlayerOwnership();
+			PlayerOwnership playerOwnership = _currentPlayerTurn == PlayerOwnership.TOP ? PlayerOwnership.BOTTOM : PlayerOwnership.TOP ;
 			if(lastMoveData.startPos == -1)
 			{
-				_gameBoard[lastMoveData.endPos] = null;
 				if(playerOwnership == PlayerOwnership.TOP)
-					_handPiecesTopPlayer.Add(lastMoveData.piece);
+					_handPiecesTopPlayer.Add(_gameBoard[lastMoveData.endPos]);
 				else
-					_handPiecesBottomPlayer.Add(lastMoveData.piece);
-			}
+					_handPiecesBottomPlayer.Add(_gameBoard[lastMoveData.endPos]);
+                _gameBoard[lastMoveData.endPos] = null;
+            }
 			else
 			{
-				_gameBoard[lastMoveData.startPos] = lastMoveData.piece;
+				Piece piece = _gameBoard[lastMoveData.endPos];
+				piece.SetPieceType(lastMoveData.piece);
+				_gameBoard[lastMoveData.startPos] = piece;
 				if(lastMoveData.pieceEaten != null)
 				{
+					Piece pieceEaten;
 					if(playerOwnership == PlayerOwnership.TOP)
 					{
-						_handPiecesTopPlayer.Remove(lastMoveData.pieceEaten);
-						lastMoveData.pieceEaten.SetPlayerOwnership(PlayerOwnership.BOTTOM);
+                        pieceEaten = _handPiecesTopPlayer[_handPiecesTopPlayer.Count -1];
+                        pieceEaten.SetPlayerOwnership(PlayerOwnership.BOTTOM);
+                        _handPiecesTopPlayer.RemoveAt(_handPiecesTopPlayer.Count - 1);
 					}
 					else
 					{
-						_handPiecesBottomPlayer.Remove(lastMoveData.pieceEaten);
-						lastMoveData.pieceEaten.SetPlayerOwnership(PlayerOwnership.TOP);
+                        pieceEaten = _handPiecesBottomPlayer[_handPiecesBottomPlayer.Count -1];
+                        pieceEaten.SetPlayerOwnership(PlayerOwnership.TOP);
+                        _handPiecesBottomPlayer.RemoveAt(_handPiecesBottomPlayer.Count - 1);
 					}
-					_gameBoard[lastMoveData.endPos] = lastMoveData.pieceEaten;
-				}
+                    pieceEaten.SetPieceType(lastMoveData.pieceEaten.Value);
+					_gameBoard[lastMoveData.endPos] = pieceEaten;
+                }
 				else
 				{
 					_gameBoard[lastMoveData.endPos] = null;
@@ -425,14 +427,21 @@ namespace YokaiNoMori.Coffee
 			_gameBoard[PositionToMoveTo] = pieceMoving;
 
 			// pawn promotion
+			bool WasPromote = false;
 			if(pieceType == PieceType.KODAMA &&
 				((ownerOfPiece == PlayerOwnership.TOP) ? (PositionToMoveTo <= 2) : (PositionToMoveTo >= 9)))
 			{
 				pieceMoving.SetPieceType(PieceData.PromotedPawn);
+				WasPromote = true;
 			}
 
 			if(IsRecordingMovement)
-				RecordMove(pieceMoving, indexOfMovingPiece, PositionToMoveTo, prevPiece);
+			{
+                if (WasPromote)
+                    RecordMove(PieceData.Pawn, indexOfMovingPiece, PositionToMoveTo, prevPiece?.GetPieceData());
+				else
+					RecordMove(pieceMoving.GetPieceData(), indexOfMovingPiece, PositionToMoveTo, prevPiece?.GetPieceData());
+            }
 
 			// managing piece that got taken if any
 			if(prevPiece != null)
@@ -528,13 +537,13 @@ namespace YokaiNoMori.Coffee
 			playerHand.Remove(pieceParachuting);
 
 			if(IsRecordingMovement)
-				RecordMove(pieceParachuting, -1, PositionToParachuteTo, null);
+				RecordMove(pieceParachuting.GetPieceData(), -1, PositionToParachuteTo);
 			ChangeTurn();
 			OnMovement?.Invoke();
 			return true;
 		}
 
-		private void RecordMove(Piece piece, int StartPos, int EndPos, Piece pieceEaten)
+		private void RecordMove(PieceData piece, int StartPos, int EndPos, PieceData? pieceEaten = null)
 		{
 			RecordMove(new MoveData(piece, StartPos, EndPos, pieceEaten));
 		}
@@ -549,7 +558,7 @@ namespace YokaiNoMori.Coffee
 				return;
 
 			MoveData prevMove = _movesData.Last.Previous.Previous.Value; // move the same player did in the previous turn
-			if(move.piece == prevMove.piece && move.endPos == prevMove.startPos)
+			if(move.piece.pieceType == prevMove.piece.pieceType && move.endPos == prevMove.startPos)
 				_nbRepeatedMoves++;
 			else
 				_nbRepeatedMoves = 0;
@@ -574,12 +583,25 @@ namespace YokaiNoMori.Coffee
 				data[pieceIdx] = HashPiece(piece, cellIdx, piece.GetPlayerOwnership() == PlayerOwnership.TOP);
 				pieceIdx++;
 			}
-			foreach(Piece piece in _handPiecesBottomPlayer)
+
+			List<Piece> HandPieceTopPlayerClone = new List<Piece>(_handPiecesTopPlayer);
+			HandPieceTopPlayerClone.Sort((x,y) =>
+			{
+				
+				return x.GetPieceType().CompareTo(y.GetPieceType());
+			});
+			List<Piece> HandPieceBottomPlayerClone = new List<Piece>(_handPiecesBottomPlayer);
+            HandPieceBottomPlayerClone.Sort((x, y) =>
+            {
+
+                return x.GetPieceType().CompareTo(y.GetPieceType());
+            });
+            foreach (Piece piece in HandPieceBottomPlayerClone)
 			{
 				data[pieceIdx] = HashPiece(piece, 15, false);
 				pieceIdx++;
 			}
-			foreach(Piece piece in _handPiecesTopPlayer)
+			foreach(Piece piece in HandPieceTopPlayerClone)
 			{
 				data[pieceIdx] = HashPiece(piece, 15, true);
 				pieceIdx++;
