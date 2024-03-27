@@ -161,7 +161,7 @@ namespace YokaiNoMori.Coffee
 				newToOld.Add(newPiece, oldPiece);
 			}
 
-			_movesData = new LinkedList<MoveData>(_movesData);
+			_movesData = new LinkedList<MoveData>(copy._movesData);
 		}
 
 		public void DecodeBoardStateString(string BoardStateString)
@@ -447,21 +447,23 @@ namespace YokaiNoMori.Coffee
 			if(prevPiece != null)
 			{
 				PieceType prevPieceType = prevPiece.GetPieceType();
-				if(ownerOfPiece == PlayerOwnership.TOP)
+
+                if (ownerOfPiece == PlayerOwnership.TOP)
 					_handPiecesTopPlayer.Add(prevPiece);
 				else
 					_handPiecesBottomPlayer.Add(prevPiece);
-				prevPiece.SetPlayerOwnership(ownerOfPiece);
 
-				if(prevPieceType == PieceType.KODAMA_SAMURAI)
-					prevPiece.SetPieceType(PieceData.Pawn);
-
-				if(prevPieceType == PieceType.KOROPOKKURU)
-				{
-					OnEnd?.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
-					ChangeTurn();
-					return true;
+                if (prevPieceType == PieceType.KOROPOKKURU)
+                {
+                    OnEnd?.Invoke(ownerOfPiece == PlayerOwnership.TOP ? 2 : 1);
+                    ChangeTurn();
+                    return true;
 				}
+				else
+                    prevPiece.SetPlayerOwnership(ownerOfPiece);
+
+                if (prevPieceType == PieceType.KODAMA_SAMURAI)
+					prevPiece.SetPieceType(PieceData.Pawn);
 			}
 
 			// opponent king had been placed on last row and we didn't capture king, lose

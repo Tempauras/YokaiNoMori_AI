@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using UnityEngine;
 using YokaiNoMori.Enumeration;
@@ -25,7 +26,7 @@ namespace YokaiNoMori.Coffee
 		private bool m_LastMoveEnded = false;
 		private int m_LastEndCode;
 
-		private const int m_SearchDepth = 4;
+		private const int m_SearchDepth = 5;
 		private static RawMoveData? s_MoveDataDummy;
 		private int m_NbMoveExplored = 0;
 		private float m_LastMoveEval = 0;
@@ -141,11 +142,19 @@ namespace YokaiNoMori.Coffee
 			float value = float.NegativeInfinity;
 			float curMoveVal = float.NegativeInfinity;
 			List<RawMoveData> moves = GetAllMoves(iGame);
+			if (moves.Count < 1)
+			{
+				Debug.LogWarning("Tom pk ca marche pas");
+			}
 			foreach(RawMoveData move in moves)
 			{
 				bool success = iGame.MovePieces(move.Key, move.Value);
 				if(!success)
-					continue;
+				{
+					Debug.LogWarning("AHHHHHHHHHHHHHHHHHHHHHHPKCAMARCHEPAS");
+                    continue;
+                }
+					
 				if(m_LastMoveEnded)
 				{
 					switch(m_LastEndCode)
@@ -168,18 +177,18 @@ namespace YokaiNoMori.Coffee
 				else
 				{
 					Game localCopy = new Game(iGame, out s_DictDummy);
-					iGame.OnEnd += _OnModelEnd;
+					localCopy.OnEnd += _OnModelEnd;
 					curMoveVal = -_Negamax(localCopy, iDepth - 1, ref s_MoveDataDummy);
 				}
 
 				if(curMoveVal > value)
 				{
-					m_DebugString += $"{new string('\t', iDepth != 1 ? m_SearchDepth - iDepth : 1)}{move.Key.GetPieceType()}->{move.Value}: {value}{(iDepth != 1 ? "\n" : " ; ")}";
-					value = curMoveVal;
+                    value = curMoveVal;
+                    //m_DebugString += $"{iDepth} - {move.Key.GetPieceType()}->{move.Value}: {value} {(iDepth != 1 ? "\n" : "\n ")}";
 					oBestMove = move;
 				}
-
-				iGame.Rewind();
+                m_DebugString += $"{iDepth} - {move.Key.GetPieceType()}->{move.Value}: {curMoveVal} {(iDepth != 1 ? "\n" : "\n ")}";
+                iGame.Rewind();
 			}
 
 			return value;
@@ -189,7 +198,7 @@ namespace YokaiNoMori.Coffee
 		{
 			float value = 0;
 			PlayerOwnership curPlayer = iGame.GetCurrentPlayer();
-			
+
 			for(int cellIdx = 0; cellIdx < 12; cellIdx++)
 			{
 				Piece piece = iGame.GetCell(cellIdx);
@@ -217,7 +226,6 @@ namespace YokaiNoMori.Coffee
 					}
 				}
 				//End King Position on board
-
 			}
 
 			int handCamp = curPlayer == PlayerOwnership.BOTTOM ? 1 : -1;
@@ -267,7 +275,8 @@ namespace YokaiNoMori.Coffee
 		{
 			List<RawMoveData> moves = new List<RawMoveData>();
 			foreach(int pos in iGame.AllowedMove(iPiece))
-				moves.Add(KeyValuePair.Create(iPiece, pos));
+                moves.Add(KeyValuePair.Create(iPiece, pos));
+				
 			return moves;
 		}
 
