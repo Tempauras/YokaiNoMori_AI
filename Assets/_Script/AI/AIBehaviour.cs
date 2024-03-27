@@ -34,6 +34,16 @@ namespace YokaiNoMori.Coffee
 		// private List<RawMoveData> m_FutureBestMoves = new List<RawMoveData>();
 		private string m_DebugString = "";
 
+		private struct EvaluationNode
+		{
+			public RawMoveData BestMove;
+			public long NextHash;
+			public float EstimatedEval;
+			public float Eval;
+		}
+
+		private Dictionary<long, EvaluationNode> m_EvaluationTable = new Dictionary<long, EvaluationNode>();
+
 		public AIBehaviour()
 		{
 		}
@@ -154,10 +164,10 @@ namespace YokaiNoMori.Coffee
 							curMoveVal = 0;
 							break;
 						case 1:
-							curMoveVal = (iGame.GetCurrentPlayer() == PlayerOwnership.BOTTOM ? -1 : 1) * (1000 + iDepth);
+							curMoveVal = (iGame.GetCurrentPlayer() == PlayerOwnership.BOTTOM ? -1 : 1) * (10000 + iDepth);
 							break;
 						case 2:
-							curMoveVal = (iGame.GetCurrentPlayer() == PlayerOwnership.BOTTOM ? 1 : -1) * (1000 + iDepth);
+							curMoveVal = (iGame.GetCurrentPlayer() == PlayerOwnership.BOTTOM ? 1 : -1) * (10000 + iDepth);
 							break;
 						default:
 							Debug.LogError("End code not supported");
@@ -183,6 +193,21 @@ namespace YokaiNoMori.Coffee
 			}
 
 			return value;
+		}
+
+		private void _BreadthFirstNegamax()
+		{
+			Dictionary<Piece, Piece> gameToReal;
+			Game game = new Game(m_GameModel, out gameToReal);
+
+			List<RawMoveData> moves = new List<RawMoveData>();
+
+			List<long> nextHashesToVisit = new List<long>();
+			while(nextHashesToVisit.Count > 0)
+			{
+				List<long> hashesToVisit = nextHashesToVisit;
+				nextHashesToVisit = new List<long>();
+			}
 		}
 
 		private float _Evaluate(Game iGame)

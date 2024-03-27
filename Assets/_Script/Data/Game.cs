@@ -112,6 +112,7 @@ namespace YokaiNoMori.Coffee
 		private List<Piece> _handPiecesTopPlayer = new List<Piece>();
 		private List<Piece> _handPiecesBottomPlayer = new List<Piece>();
 		private PlayerOwnership _currentPlayerTurn = PlayerOwnership.BOTTOM;
+		private List<Piece> _pieces = new List<Piece>();
 
 		public event Action OnInit;
 		public event Action OnMovement;
@@ -166,6 +167,8 @@ namespace YokaiNoMori.Coffee
 				_movesData.AddLast(new MoveData(
 					toNewPiece[moveData.piece], moveData.startPos, moveData.endPos, moveData.pieceEaten == null ? null : toNewPiece[moveData.pieceEaten]));
 			}
+
+			_pieces = new List<Piece>(new ClonePieceEnumerable(copy._pieces));
 		}
 
 		public void DecodeBoardStateString(string BoardStateString)
