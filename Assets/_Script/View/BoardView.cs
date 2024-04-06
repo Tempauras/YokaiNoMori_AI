@@ -67,8 +67,6 @@ public class BoardView : MonoBehaviour
 		m_Timer.OnEnd += _OnTimerEnded;
 
 		m_AI = new AIBehaviour();
-		m_AI.Init(m_GameModel);
-		m_AI.SetCamp(PlayerOwnership.TOP);
 	}
 
 	public void SetSinglePlayer()
@@ -154,6 +152,7 @@ public class BoardView : MonoBehaviour
 		m_Timer.Init(m_InitialTime, m_TimeIncrement, m_IsBottomPlayerTurn);
 		_UpdateHUD();
 
+		m_AI.Init(m_GameModel, 5, PlayerOwnership.TOP);
 		PlayAI_IfNeeded();
 	}
 
@@ -325,6 +324,7 @@ public class BoardView : MonoBehaviour
 	private IEnumerator _DelayPlayAI()
 	{
 		yield return new WaitForSeconds(0.2f);
+		m_AI.GetDatas();
 		m_AI.StartTurn();
 	}
 

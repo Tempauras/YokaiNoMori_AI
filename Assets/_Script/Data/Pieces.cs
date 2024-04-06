@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace YokaiNoMori.Coffee
 {
 	[System.Flags]
@@ -68,6 +70,46 @@ namespace YokaiNoMori.Coffee
 				MovementType.FORWARD | MovementType.BACKWARD | MovementType.LEFT | MovementType.RIGHT |
 				MovementType.FORWARD_LEFT | MovementType.FORWARD_RIGHT | MovementType.BACKWARD_LEFT | MovementType.BACKWARD_RIGHT
 			);
+		}
+
+		public static PieceData ToPieceData(PieceType iPieceType)
+		{
+			switch(iPieceType)
+			{
+				case PieceType.KODAMA:
+					return Pawn;
+				case PieceType.KODAMA_SAMURAI:
+					return PromotedPawn;
+				case PieceType.TANUKI:
+					return Rook;
+				case PieceType.KITSUNE:
+					return Bishop;
+				case PieceType.KOROPOKKURU:
+					return King;
+				default:
+					Debug.LogError("Unsupported piece type");
+					return Pawn;
+			}
+		}
+
+		public static PieceData ToPieceData(Enumeration.EPawnType iPawnType)
+		{
+			switch(iPawnType)
+			{
+				case Enumeration.EPawnType.Kodama:
+					return Pawn;
+				case Enumeration.EPawnType.KodamaSamurai:
+					return PromotedPawn;
+				case Enumeration.EPawnType.Tanuki:
+					return Rook;
+				case Enumeration.EPawnType.Kitsune:
+					return Bishop;
+				case Enumeration.EPawnType.Koropokkuru:
+					return King;
+				default:
+					Debug.LogError("Unsupported piece type");
+					return Pawn;
+			}
 		}
 	}
 }

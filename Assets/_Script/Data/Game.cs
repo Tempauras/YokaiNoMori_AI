@@ -2,8 +2,10 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using UnityEngine;
+using YokaiNoMori.Enumeration;
+using YokaiNoMori.Interface;
+using YokaiNoMori.Struct;
 
 namespace YokaiNoMori.Coffee
 {
@@ -127,6 +129,7 @@ namespace YokaiNoMori.Coffee
 		}
 
 		public Game(Game copy, out Dictionary<Piece, Piece> newToOld)
+			: this()
 		{
 			_gameBoard = new List<Piece>(new ClonePieceEnumerable(copy._gameBoard)).ToArray();
 			_handPiecesTopPlayer = new List<Piece>(new ClonePieceEnumerable(copy._handPiecesTopPlayer));
@@ -161,6 +164,51 @@ namespace YokaiNoMori.Coffee
 			}
 
 			_movesData = new LinkedList<MoveData>(copy._movesData);
+		}
+
+		public Game(IGameManager copy, out Dictionary<Piece, IPawn> newToOld)
+			: this()
+		{
+			newToOld = new Dictionary<Piece, IPawn>();
+			List<IPawn> pawnsBottom = copy.GetPawnsOnBoard(ECampType.PLAYER_ONE);
+			pawnsBottom.AddRange(copy.GetReservePawnsByPlayer(ECampType.PLAYER_ONE));
+			foreach(IPawn pawn in pawnsBottom)
+			{
+				if(pawn is null)
+				{
+					Debug.LogError("Null pawn");
+					return;
+				}
+
+				Piece newPiece = new Piece(PieceData.ToPieceData(pawn.GetPawnType()), PlayerOwnership.BOTTOM);
+				newToOld.Add(newPiece, pawn);
+
+				int cellIdx = VectorToCellIdx(pawn.GetCurrentPosition());
+				if(cellIdx < 0)
+					_handPiecesBottomPlayer.Add(newPiece);
+				else
+					_gameBoard[cellIdx] = newPiece;
+			}
+
+			List<IPawn> pawnsTop = copy.GetPawnsOnBoard(ECampType.PLAYER_TWO);
+			pawnsTop.AddRange(copy.GetReservePawnsByPlayer(ECampType.PLAYER_TWO));
+			foreach(IPawn pawn in pawnsTop)
+			{
+				if(pawn is null)
+				{
+					Debug.LogError("Null pawn");
+					return;
+				}
+
+				Piece newPiece = new Piece(PieceData.ToPieceData(pawn.GetPawnType()), PlayerOwnership.TOP);
+				newToOld.Add(newPiece, pawn);
+
+				int cellIdx = VectorToCellIdx(pawn.GetCurrentPosition());
+				if(cellIdx < 0)
+					_handPiecesTopPlayer.Add(newPiece);
+				else
+					_gameBoard[cellIdx] = newPiece;
+			}
 		}
 
 		public void DecodeBoardStateString(string BoardStateString)
@@ -396,6 +444,39 @@ namespace YokaiNoMori.Coffee
 			ChangeTurn();
 			OnMovement?.Invoke();
 			return true;
+		}
+
+		public void ForwardLastAction(IGameManager gameManager, Dictionary<Piece, IPawn> pawnCorrespondance)
+		{
+			SAction lastAction = gameManager.GetLastAction();
+			if(lastAction.ActionType != EActionType.NONE)
+			{
+				Piece movedPiece = null;
+				if(lastAction.ActionType == EActionType.MOVE)
+					movedPiece = _gameBoard[VectorToCellIdx(lastAction.StartPosition)];
+				else if(lastAction.ActionType == EActionType.PARACHUTE)
+				{
+					List<Piece> hand = lastAction.CampType == ECampType.PLAYER_ONE ? _handPiecesBottomPlayer : _handPiecesTopPlayer;
+					foreach(Piece piece in hand)
+					{
+						IPawn targetPawn = pawnCorrespondance.GetValueOrDefault(piece);
+						if(targetPawn is null)
+							continue;
+						if(targetPawn.GetCurrentPosition() == lastAction.NewPosition)
+						{
+							movedPiece = piece;
+							break;
+						}
+					}
+				}
+				if(movedPiece is null)
+				{
+					Debug.LogError("Action not supported");
+					return;
+				}
+
+				MovePieces(movedPiece, VectorToCellIdx(lastAction.NewPosition));
+			}
 		}
 
 		public void DispatchPieces(string BoardStateString)
@@ -724,6 +805,24 @@ namespace YokaiNoMori.Coffee
 				default:
 					break;
 			}
+		}
+
+		public static Vector2Int CellIdxToVector(int CellIdx)
+		{
+			if(CellIdx < 0)
+				return -Vector2Int.one;
+
+			int reminder;
+			int quotient = Math.DivRem(CellIdx, 3, out reminder);
+			return new Vector2Int(reminder, quotient);
+		}
+
+		public static int VectorToCellIdx(Vector2Int Vec)
+		{
+			if(Vec.x < 0 || Vec.y < 0)
+				return -1;
+
+			return Vec.y * 3 + Vec.x;
 		}
 	}
 }

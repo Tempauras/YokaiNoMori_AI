@@ -1,7 +1,5 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -13,25 +11,28 @@ namespace YokaiNoMori.Coffee
 	using Random = UnityEngine.Random;
 	using RawMoveData = KeyValuePair<Piece, int>;
 
-	public class AIBehaviour // : ICompetitor
+	public class AIBehaviour : MonoBehaviour, ICompetitor
 	{
-		private const string s_Name = "YoshihAIruHabu";
+		private static string s_Name = "YoshihAIruHabu (Groupe Pause Café)";
 
+		private IGameManager m_RealGameManager;
 		private Game m_RealGame;
 		private Game m_GameModel;
+		private Dictionary<Piece, IPawn> m_RealGameToGameManager;
 		private Dictionary<Piece, Piece> m_InternToRealGame;
 
 		private ECampType m_Camp = ECampType.NONE;
-		private PlayerOwnership m_PlayerOwnership;
 
 		private bool m_LastMoveEnded = false;
 		private int m_LastEndCode;
 
-		private const int m_SearchDepth = 8;
-		private const int m_MaxComputeTime = 5000; // in millisecondss
+		private int m_SearchDepth = 8;
+		private int m_MaxComputeTime = 5000; // in millisecondss
 
 		private int m_NbMoveExplored = 0;
-		private string m_DebugString = "";
+		// private string m_DebugString = "";
+
+		private bool m_IsFirstTurn = true;
 
 		private struct Result
 		{
@@ -47,9 +48,13 @@ namespace YokaiNoMori.Coffee
 		}
 
 		#region Competitor functions
-		public ECampType GetCamp()
+		public void Init(IGameManager iGameManager, float iMaxTime, ECampType iCamp)
 		{
-			return m_Camp;
+			m_RealGameManager = iGameManager;
+			m_Camp = iCamp;
+			m_MaxComputeTime = Mathf.FloorToInt(iMaxTime * 1000f);
+			m_SearchDepth = Mathf.Max(Mathf.FloorToInt(Mathf.Log(m_MaxComputeTime) - 1), 2);
+			m_IsFirstTurn = true;
 		}
 
 		public string GetName()
@@ -57,28 +62,39 @@ namespace YokaiNoMori.Coffee
 			return s_Name;
 		}
 
-		public void SetCamp(ECampType iCamp)
+		public ECampType GetCamp()
 		{
-			m_Camp = iCamp;
+			return m_Camp;
+		}
+
+		public void GetDatas()
+		{
+			if(m_RealGameManager != null)
+			{
+				if(m_IsFirstTurn)
+				{
+					m_RealGame = new Game(m_RealGameManager, out m_RealGameToGameManager);
+					if(m_Camp == ECampType.PLAYER_TWO)
+						m_RealGame.SetCurrentPlayer(PlayerOwnership.TOP);
+					m_IsFirstTurn = false;
+				}
+				else
+					m_RealGame.ForwardLastAction(m_RealGameManager, m_RealGameToGameManager);
+			}
+
+			m_GameModel = new Game(m_RealGame, out m_InternToRealGame);
+			m_GameModel.OnEnd += _OnModelEnd;
 		}
 
 		public async void StartTurn()
 		{
-			UpdateData();
-
-			if(m_GameModel.GetCurrentPlayer() != m_PlayerOwnership)
-			{
-				Debug.LogWarning("AI attempted to play for player");
-				return;
-			}
-
 			m_EndComputation = new CancellationTokenSource();
 			m_EndComputation.CancelAfter(m_MaxComputeTime);
 			m_DoMove = true;
 
 			// debug
-			float startTime = Time.time;
-			m_DebugString = "";
+			// float startTime = Time.time;
+			// m_DebugString = "";
 			m_NbMoveExplored = 0;
 
 			Result result;
@@ -104,11 +120,12 @@ namespace YokaiNoMori.Coffee
 					if(result.BestMove.HasValue)
 					{
 						//debug
-						Debug.Log($"Number of evaluated positions: {m_NbMoveExplored}");
-						float timeSpan = Time.time - startTime;
-						Debug.Log($"Computation time: {timeSpan}s ({(timeSpan != 0 ? m_NbMoveExplored / timeSpan : 0)} pos/seconds)");
-						Debug.Log($"Move evaluation: {result.BestMoveEval}");
-						Debug.Log($"Debug string:\n{m_DebugString}");
+						// Debug.Log($"Number of evaluated positions: {m_NbMoveExplored}");
+						// float timeSpan = Time.time - startTime;
+						// Debug.Log($"Computation time: {timeSpan}s ({(timeSpan != 0 ? m_NbMoveExplored / timeSpan : 0)} pos/seconds)");
+						//Debug.Log($"{s_Name}: {result.BestMove.Value.Key.GetPieceType()} -> {Game.CellIdxToVector(result.BestMove.Value.Value)}");
+						// Debug.Log($"Move evaluation: {result.BestMoveEval}");
+						// Debug.Log($"Debug string:\n{m_DebugString}");
 						// Write the string array to a new file named "WriteLines.txt".
 						/*using(StreamWriter outputFile = new StreamWriter(Path.Combine(Application.dataPath, "_AI_Debug.txt")))
 						{
@@ -127,35 +144,31 @@ namespace YokaiNoMori.Coffee
 
 		public void StopTurn()
 		{
-			m_EndComputation.Cancel();
+			m_EndComputation?.Cancel();
 		}
+		#endregion Competitor functions
 
 		public void AbortTurn()
 		{
 			m_DoMove = false;
-			m_EndComputation.Cancel();
-		}
-		#endregion Competitor functions
-
-		public void SetCamp(PlayerOwnership iPlayerOwnership)
-		{
-			m_PlayerOwnership = iPlayerOwnership;
+			m_EndComputation?.Cancel();
 		}
 
-		public void Init(Game iGame)
+		public void Init(Game iGame, float iMaxTime, PlayerOwnership iPlayerOwnership)
 		{
+			Init(null, iMaxTime, iPlayerOwnership == PlayerOwnership.BOTTOM ? ECampType.PLAYER_ONE : ECampType.PLAYER_TWO);
 			m_RealGame = iGame;
-		}
-
-		private void UpdateData()
-		{
-			m_GameModel = new Game(m_RealGame, out m_InternToRealGame);
-			m_GameModel.OnEnd += _OnModelEnd;
 		}
 
 		private void MoveRandom()
 		{
-			List<RawMoveData> moves = GetAllMoves(m_RealGame);
+			GetDatas(); // resetting game model to real game
+			List<RawMoveData> moves = GetAllMoves(m_GameModel);
+			if(moves.Count == 0)
+			{
+				Debug.LogError("No moves available");
+				return;
+			}
 			Move(moves[Random.Range(0, moves.Count)]);
 		}
 
@@ -262,21 +275,6 @@ namespace YokaiNoMori.Coffee
 			return result;
 		}
 
-		private void _BreadthFirstNegamax()
-		{
-			Dictionary<Piece, Piece> gameToReal;
-			Game game = new Game(m_GameModel, out gameToReal);
-
-			List<RawMoveData> moves = new List<RawMoveData>();
-
-			List<long> nextHashesToVisit = new List<long>();
-			while(nextHashesToVisit.Count > 0)
-			{
-				List<long> hashesToVisit = nextHashesToVisit;
-				nextHashesToVisit = new List<long>();
-			}
-		}
-
 		private int _Evaluate(Game iGame)
 		{
 			int value = 0;
@@ -370,7 +368,37 @@ namespace YokaiNoMori.Coffee
 
 		private void Move(Piece iPiece, int iPos)
 		{
-			m_RealGame.MovePieces(m_InternToRealGame.GetValueOrDefault(iPiece, null), iPos);
+			// iPiece is assumed to be a Piece from m_GameModel
+			Piece realPiece = m_InternToRealGame.GetValueOrDefault(iPiece);
+			if(realPiece == null)
+			{
+				Debug.LogError("No piece found");
+				return;
+			}
+
+			m_RealGame.MovePieces(realPiece, iPos);
+
+			if(m_RealGameManager != null)
+			{
+				IPawn pawn = m_RealGameToGameManager.GetValueOrDefault(realPiece);
+				if(pawn == null)
+				{
+					Debug.LogError("No pawn found, AI died.");
+					return;
+				}
+
+				Move(pawn, Game.CellIdxToVector(iPos));
+			}
+		}
+
+		private void Move(IPawn iPawn, Vector2Int iPos)
+		{
+			if(iPawn == null || m_RealGameManager == null)
+				return;
+
+			Vector2Int pawnPos = iPawn.GetCurrentPosition();
+			EActionType action = (pawnPos.x < 0 || pawnPos.y < 0) ? EActionType.PARACHUTE : EActionType.MOVE;
+			m_RealGameManager.DoAction(iPawn, iPos, action);
 		}
 
 		// read game
